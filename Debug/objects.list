@@ -44,4 +44,8 @@
 "Src/stm32f4xx_it.o"
 "Src/syscalls.o"
 "Src/system_stm32f4xx.o"
+"src_cpp/CRC16.o"
+"src_cpp/LORA.o"
+"src_cpp/SLIP.o"
+"src_cpp/Threads.o"
 "startup/startup_stm32f405xx.o"

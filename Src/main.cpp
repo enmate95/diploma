@@ -19,12 +19,12 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
+#include <Threads.h>
 #include "main.h"
 #include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -410,10 +410,8 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+	initApp();
+	vTaskDelete(NULL);
   /* USER CODE END 5 */ 
 }
 

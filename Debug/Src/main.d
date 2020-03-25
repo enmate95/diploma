@@ -1,4 +1,5 @@
 Src/main.o: ../Src/main.cpp \
+ D:/dokumentumok/bme/Dipterv1/project/repo/Inc/Threads.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Inc/stm32f4xx_hal_conf.h \
@@ -49,7 +50,10 @@ Src/main.o: ../Src/main.cpp \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
+ D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
+ D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h
+
+D:/dokumentumok/bme/Dipterv1/project/repo/Inc/Threads.h:
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h:
 
@@ -152,3 +156,5 @@ D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Sourc
 D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h:
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
+
+D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h:
