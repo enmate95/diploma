@@ -4,9 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../Src/custom_bus.c \
 ../Src/freertos.c \
-../Src/hci_tl_interface.c \
 ../Src/stm32f4xx_hal_msp.c \
 ../Src/stm32f4xx_hal_timebase_tim.c \
 ../Src/stm32f4xx_it.c \
@@ -17,9 +15,7 @@ CPP_SRCS += \
 ../Src/main.cpp 
 
 OBJS += \
-./Src/custom_bus.o \
 ./Src/freertos.o \
-./Src/hci_tl_interface.o \
 ./Src/main.o \
 ./Src/stm32f4xx_hal_msp.o \
 ./Src/stm32f4xx_hal_timebase_tim.o \
@@ -28,9 +24,7 @@ OBJS += \
 ./Src/system_stm32f4xx.o 
 
 C_DEPS += \
-./Src/custom_bus.d \
 ./Src/freertos.d \
-./Src/hci_tl_interface.d \
 ./Src/stm32f4xx_hal_msp.d \
 ./Src/stm32f4xx_hal_timebase_tim.d \
 ./Src/stm32f4xx_it.d \
@@ -46,7 +40,7 @@ Src/%.o: ../Src/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: MCU GCC Compiler'
 	@echo $(PWD)
-	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DUSE_HAL_DRIVER -DSTM32F405xx -I"D:/dokumentumok/bme/Dipterv1/project/repo/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Basic" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/ST/BlueNRG-MS/includes" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/ST/BlueNRG-MS/utils" -I../Middlewares/ST/Middlewares/ST/BlueNRG-MS/includes -I../Middlewares/ST/Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Template -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include"  -Og -g3 -Wall -fmessage-length=0 -ffunction-sections -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
+	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DUSE_HAL_DRIVER -DSTM32F405xx -I"D:/dokumentumok/bme/Dipterv1/project/repo/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include"  -Og -g3 -Wall -fmessage-length=0 -ffunction-sections -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
@@ -54,7 +48,7 @@ Src/%.o: ../Src/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: MCU G++ Compiler'
 	@echo $(PWD)
-	arm-none-eabi-g++ -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DUSE_HAL_DRIVER -DSTM32F405xx -I"D:/dokumentumok/bme/Dipterv1/project/repo/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Basic" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/ST/BlueNRG-MS/includes" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/ST/BlueNRG-MS/utils" -I../Middlewares/ST/Middlewares/ST/BlueNRG-MS/includes -I../Middlewares/ST/Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Template  -Og -g3 -Wall -fmessage-length=0 -ffunction-sections -c -fno-exceptions -fno-rtti -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
+	arm-none-eabi-g++ -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -DUSE_HAL_DRIVER -DSTM32F405xx -I"D:/dokumentumok/bme/Dipterv1/project/repo/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/Legacy" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Device/ST/STM32F4xx/Include" -I"D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/CMSIS/Include"  -Og -g3 -Wall -fmessage-length=0 -ffunction-sections -c -fno-exceptions -fno-rtti -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

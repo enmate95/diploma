@@ -25,16 +25,12 @@ CPP_DEPS :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+CPP \
 Drivers/STM32F4xx_HAL_Driver/Src \
-Middlewares/ST/BlueNRG-MS/hci/controller \
-Middlewares/ST/BlueNRG-MS/hci \
-Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Basic \
-Middlewares/ST/BlueNRG-MS/utils \
 Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
 Middlewares/Third_Party/FreeRTOS/Source \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 Src \
-src_cpp \
 startup \
 

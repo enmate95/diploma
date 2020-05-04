@@ -25,14 +25,9 @@ Src/stm32f4xx_it.o: ../Src/stm32f4xx_it.c \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash_ramfunc.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Inc/hci_tl_interface.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Inc/custom_bus.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Inc/custom_conf.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Inc/custom_errno.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Inc/stm32f4xx_it.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Inc/FreeRTOSConfig.h \
@@ -96,21 +91,11 @@ D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h:
 
-D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h:
-
 D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
-
-D:/dokumentumok/bme/Dipterv1/project/repo/Inc/hci_tl_interface.h:
-
-D:/dokumentumok/bme/Dipterv1/project/repo/Inc/custom_bus.h:
-
-D:/dokumentumok/bme/Dipterv1/project/repo/Inc/custom_conf.h:
-
-D:/dokumentumok/bme/Dipterv1/project/repo/Inc/custom_errno.h:
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Inc/stm32f4xx_it.h:
 

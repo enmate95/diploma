@@ -9,17 +9,13 @@ RM := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include startup/subdir.mk
--include src_cpp/subdir.mk
 -include Src/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/subdir.mk
--include Middlewares/ST/BlueNRG-MS/utils/subdir.mk
--include Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Basic/subdir.mk
--include Middlewares/ST/BlueNRG-MS/hci/controller/subdir.mk
--include Middlewares/ST/BlueNRG-MS/hci/subdir.mk
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
+-include CPP/subdir.mk
 -include subdir.mk
 -include objects.mk
 

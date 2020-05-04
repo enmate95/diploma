@@ -30,7 +30,6 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 
-#include "hci_tl_interface.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -69,14 +68,6 @@ void Error_Handler(void);
 #define LORA_TX_GPIO_Port GPIOA
 #define LORA_RX_Pin GPIO_PIN_3
 #define LORA_RX_GPIO_Port GPIOA
-#define WIFI_TX_Pin GPIO_PIN_10
-#define WIFI_TX_GPIO_Port GPIOB
-#define WIFI_RX_Pin GPIO_PIN_11
-#define WIFI_RX_GPIO_Port GPIOB
-#define LTE_TX_Pin GPIO_PIN_9
-#define LTE_TX_GPIO_Port GPIOA
-#define LTE_RX_Pin GPIO_PIN_10
-#define LTE_RX_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
