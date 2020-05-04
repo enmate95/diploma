@@ -9,9 +9,10 @@
 #define TASKS_H_
 #include "main.h"
 #include "cmsis_os.h"
+#include "LORA.h"
 
-void InitTasks(UART_HandleTypeDef *Handler);
-void ProcessTask(void *param);
-
+void InitTasks();
+void ProcessTask1(void *param);
+void ProcessTask2(void *param);
 
 #endif /* TASKS_H_ */

@@ -45,6 +45,7 @@ public:
 	void ResetSignal();
 	int GetSignal();
 	TWiMOD_HCI_Message* TxMessage;
+	TWiMOD_HCI_Message* GetRxMessage();
 
 private:
 	UART_HandleTypeDef *Handler;

@@ -67,6 +67,10 @@ int HCI::GetSignal() {
 	return RxSignal;
 }
 
+TWiMOD_HCI_Message* HCI::GetRxMessage() {
+	return RxMessage;
+}
+
 void HCI::Process() {
 	static uint32_t RawLength = 0;
 	static int SlipLength;

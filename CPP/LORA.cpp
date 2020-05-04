@@ -37,6 +37,10 @@ int LoRaDevice::Send(uint8_t *data,uint16_t size) {
 
 void LoRaDevice::Process() {
 	Hci->Process();
+	if(Hci->GetSignal()) {
+		Hci->ResetSignal();
+		HCICallback(Hci->GetRxMessage());
+	}
 }
 
 int LoRaDevice::LoRaDevice::Connect() {
@@ -115,17 +119,16 @@ void LoRaDevice::Wakeup() {
 	Hci->Wakeup();
 }
 
-TWiMOD_HCI_Message* HCICallback(TWiMOD_HCI_Message* rxMessage) {
+void HCICallback(TWiMOD_HCI_Message* rxMessage) {
 	switch(rxMessage->SapID) {
 		case DEVMGMT_SAP_ID:
-			//Process_DeviceManagement_Message(rxMessage);
+			Process_DeviceManagement_Message(rxMessage);
 		break;
 
 		case LORAWAN_SAP_ID:
-			//Process_LoRaWAN_Message(rxMessage);
+			Process_LoRaWAN_Message(rxMessage);
 		break;
 	}
-	return rxMessage;
 }
 
 

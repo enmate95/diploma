@@ -25,6 +25,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Tasks.h"
+//#include "LORA.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +48,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
-
+LoRaDevice *LoRa;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -97,7 +98,7 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  //LoRa = new LoRaDevice(&huart2);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -290,7 +291,7 @@ void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  InitTasks(&huart2);
+  InitTasks();
   vTaskDelete(NULL);
   /* USER CODE END 5 */ 
 }

@@ -128,9 +128,9 @@ typedef struct {
 }LoRaDeviceStatus_t;
 
 
-TWiMOD_HCI_Message* HCICallback(TWiMOD_HCI_Message* rxMessage);
-void Process_LoRaWAN_Message(TWiMOD_HCI_Message* rxMessage);
-void Process_DeviceManagement_Message(TWiMOD_HCI_Message* rxMessage);
+void HCICallback(TWiMOD_HCI_Message* rxMessage);
+void  Process_LoRaWAN_Message(TWiMOD_HCI_Message* rxMessage);
+void  Process_DeviceManagement_Message(TWiMOD_HCI_Message* rxMessage);
 
 
 class LoRaDevice {
