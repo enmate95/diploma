@@ -5,16 +5,17 @@
  *      Author: mate_pc
  */
 
-#include "main.h"
-#include "cmsis_os.h"
+
 #include "Tasks.h"
+#include "LORA.h"
 
 
 TaskHandle_t ProcessHandler = NULL;
+LoRaDevice *Device;
 
-
-void InitTasks() {
+void InitTasks(UART_HandleTypeDef *Handler) {
 	xTaskCreate(ProcessTask,"Process",4*128,NULL,tskIDLE_PRIORITY + 1,&ProcessHandler);
+	Device = new LoRaDevice(Handler);
 }
 
 void ProcessTask(void *param) {

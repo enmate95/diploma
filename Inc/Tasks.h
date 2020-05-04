@@ -7,8 +7,10 @@
 
 #ifndef TASKS_H_
 #define TASKS_H_
+#include "main.h"
+#include "cmsis_os.h"
 
-void InitTasks();
+void InitTasks(UART_HandleTypeDef *Handler);
 void ProcessTask(void *param);
 
 

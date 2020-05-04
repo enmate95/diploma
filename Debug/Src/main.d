@@ -45,7 +45,8 @@ Src/main.o: ../Src/main.cpp \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h \
  D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h \
- D:/dokumentumok/bme/Dipterv1/project/repo/Inc/Tasks.h
+ D:/dokumentumok/bme/Dipterv1/project/repo/Inc/Tasks.h \
+ D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h:
 
@@ -140,3 +141,5 @@ D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Sourc
 D:/dokumentumok/bme/Dipterv1/project/repo/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h:
 
 D:/dokumentumok/bme/Dipterv1/project/repo/Inc/Tasks.h:
+
+D:/dokumentumok/bme/Dipterv1/project/repo/Inc/main.h:
