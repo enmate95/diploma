@@ -33,6 +33,10 @@ BlueNRG-MS/Target \
 Core/Src \
 Core/Startup \
 Drivers/STM32F4xx_HAL_Driver/Src \
+LORA/CRC \
+LORA/HCI \
+LORA/LoRaWAN \
+LORA/SLIP \
 Middlewares/ST/BlueNRG-MS/hci/controller \
 Middlewares/ST/BlueNRG-MS/hci \
 Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Basic \
@@ -41,4 +45,6 @@ Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
 Middlewares/Third_Party/FreeRTOS/Source \
 Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
 Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
+RadioDev \
+Serial \
 

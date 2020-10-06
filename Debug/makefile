@@ -8,6 +8,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include Serial/subdir.mk
+-include RadioDev/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/subdir.mk
@@ -16,6 +18,10 @@ RM := rm -rf
 -include Middlewares/ST/BlueNRG-MS/hci/hci_tl_patterns/Basic/subdir.mk
 -include Middlewares/ST/BlueNRG-MS/hci/controller/subdir.mk
 -include Middlewares/ST/BlueNRG-MS/hci/subdir.mk
+-include LORA/SLIP/subdir.mk
+-include LORA/LoRaWAN/subdir.mk
+-include LORA/HCI/subdir.mk
+-include LORA/CRC/subdir.mk
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
