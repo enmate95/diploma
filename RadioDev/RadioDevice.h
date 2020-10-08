@@ -11,8 +11,6 @@
 #include "Container.h"
 #include <functional>
 
-typedef std::function<void()> ITHandlerCb_t;
-
 class RadioDevice {
 	public:
 		virtual ~RadioDevice() {}
@@ -29,6 +27,14 @@ class RadioDevice {
 		virtual void process() = 0;
 
 		bool isBusy() { return busy;}
+
+		bool isEvent() {
+			if(event) {
+				event = false;
+				return true;
+			}
+			return false;
+		}
 
 		virtual bool send(const Container & data) = 0;
 

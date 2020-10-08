@@ -164,6 +164,13 @@ public:
 		return *this;
 	}
 
+	static const uint8_t AdaptiveDataRateEnable = 0x01;
+	static const uint8_t DutyCycleControlEnable = 0x02;
+	static const uint8_t ClassCEnable = 0x04;
+	static const uint8_t PowerUpIndicationEnable = 0x10;
+	static const uint8_t PrivateNetworkEnable = 0x20;
+	static const uint8_t ExtendedRfPacketEnable = 0x40;
+	static const uint8_t RxMACCommandForwardingEnable = 0x80;
 private:
 	uint8_t DataRateIndex;
 	uint8_t TXPwrLevel;
@@ -265,13 +272,14 @@ private:
 	char DeviceID[4];
 };
 
-typedef std::function<void(uint8_t,LoRaRadioConfig*)> LORAGetRadioConfigCb_t;
-typedef std::function<void(uint8_t)> LORASetRadioConfigCb_t;
-typedef std::function<void(uint8_t)> LORASetJoinParamsCb_t;
-typedef std::function<void(uint8_t)> LORAGetNtwkStatusCb_t;
+typedef std::function<void()> LORAPingCb_t;
+typedef std::function<void(LoRaRadioConfig*)> LORAGetRadioConfigCb_t;
+typedef std::function<void()> LORASetRadioConfigCb_t;
+typedef std::function<void()> LORASetJoinParamsCb_t;
+typedef std::function<void()> LORAGetNtwkStatusCb_t;
 typedef std::function<void()> LORAConnectionCompletedCb_t;
 typedef std::function<void()> LORADisconnectionCompletedCb_t;
-typedef std::function<void(uint8_t,LoRaDeviceParams*)> LORAGetDeviceParamsCb_t;
+typedef std::function<void(LoRaDeviceParams*)> LORAGetDeviceParamsCb_t;
 typedef std::function<void(uint8_t*,uint16_t)> LORADownlinkEventCb_t;
 
 enum {
@@ -298,6 +306,7 @@ enum {
 	LORA_DISCONNECTION_COMPLETE_CB,
 	LORA_GET_DEVICE_PARAMS_CB,
 	LORA_DOWNLNK_EVENT_CB,
+	LORA_PING_CB,
 }LoRaCb_t;
 
 enum {
@@ -326,6 +335,9 @@ class LoRaDevice :public RadioDevice {
 		void process();
 		bool send(const Container & data);
 		bool sendCmd(int cmd);
+		void callHandler();
+		void start();
+		void stop();
 private:
 		bool Connect();
 		bool Disconnect();
@@ -336,6 +348,7 @@ private:
 		bool SetRadioConfig();
 		bool GetRadioConfig();
 		void Wakeup();
+		void HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage);
 
 	private:
 		LoRa::LORAGetRadioConfigCb_t GetRadioConfigCallback;
@@ -346,6 +359,8 @@ private:
 		LoRa::LORADisconnectionCompletedCb_t DisconnectionCompletedCallback;
 		LoRa::LORAGetDeviceParamsCb_t GetDeviceParamsCallback;
 		LoRa::LORADownlinkEventCb_t DownlinkEventCallback;
+		LORAPingCb_t PingCallback;
+		void Rxhandler();
 
 		LoRaHCI::TWiMOD_HCI_Message TxMessage;
 		LoRaHCI::HCI &hci;
@@ -354,6 +369,7 @@ private:
 		LoRaJoinParams JoinParams;
 		LoRaDeviceParams DeviceParams;
 		int UplinkStatus = IDLE;
+		bool flag = false;
 };
 }
 

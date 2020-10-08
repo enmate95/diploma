@@ -5,7 +5,7 @@
 #include <utility>
 #include "stm32f4xx_hal.h"
 
-#define RAW_SIZE 50
+#define RAW_SIZE 500
 
 typedef struct {
 	uint32_t length = 0;
@@ -25,6 +25,7 @@ public:
 	void stopDMA();
 	bool setLength();
 	bool uartHandleFLags();
+	bool startReception();
 //private variables
 private:
 	void clearBuffer();

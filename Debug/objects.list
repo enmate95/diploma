@@ -1,5 +1,6 @@
 "BlueNRG-MS/Target/hci_tl_interface.o"
 "Core/Src/custom_bus.o"
+"Core/Src/dma.o"
 "Core/Src/freertos.o"
 "Core/Src/gpio.o"
 "Core/Src/main.o"

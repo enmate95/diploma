@@ -106,8 +106,28 @@ void LoRa::LoRaDevice::setCallback(int type, const Container & value) {
 		}
 		break;
 
+		case LORA_PING_CB: {
+			DataManager<LORAPingCb_t> dm;
+			PingCallback = dm.convertFromContainer(value);
+		}
+		break;
+
 	default:
 		break;
+	}
+}
+
+void LoRa::LoRaDevice::callHandler() {
+	Rxhandler();
+}
+
+void LoRa::LoRaDevice::Rxhandler() {
+	UartDMA *hciSerial;
+	hciSerial = hci.GetSerial();
+	if(hciSerial->uartHandleFLags()) {
+		if(hciSerial->setLength()) {
+			flag = true;
+		}
 	}
 }
 
@@ -189,7 +209,12 @@ bool LoRa::LoRaDevice::sendCmd(int cmd) {
 }
 
 void LoRa::LoRaDevice::process() {
-	hci.Process();
+	if(flag) {
+		flag = false;
+		if(hci.Process()) {
+			HandleRxMessage(hci.GetRxMessage());
+		}
+	}
 }
 
 
@@ -226,132 +251,109 @@ bool LoRa::LoRaDevice::SwReset() {
 }
 
 bool LoRa::LoRaDevice::Ping() {
-	busy = true;
 	TxMessage.SapID = DEVMGMT_SAP_ID;
 	TxMessage.MsgID = DEVMGMT_MSG_PING_REQ;
 	TxMessage.Length = 0;
 	return hci.SendMessage(TxMessage);
 }
 
-//void LoRa::LoRaDevice::RunStateMachine(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
-//	if(RxMessage == nullptr) {
-//		return;
-//	}
-//	busy = false;
-//	switch(RxMessage->MsgID) {
-//		case LORAWAN_MSG_JOIN_NETWORK_IND:
-//			if(RxMessage->Payload[0] == 0x00 || RxMessage->Payload[0] == 0x01) {	//join success with/without info attached
-//				Status = LoRaStatus_t::CONNECTED;
-//			}
-//			else {
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_JOIN_NETWORK_RSP:
-//			if(!RxMessage->Payload[0] == 0x00 ) {	//join request acknowledged
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_JOIN_NETWORK_TX_IND:
-//			if(!RxMessage->Payload[0] == 0x00 ) {	//join success transmitted
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_GET_NWK_STATUS_RSP:
-//			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-//				if(RxMessage->Payload[1] == 0x02) {									//OTAA active
-//					Status = LoRaStatus_t::CONNECTED;
-//				}
-//				else {
-//					Status = LoRaStatus_t::GET_NTWK_STATUS_DONE;
-//				}
-//			}
-//			else {
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//
-//		break;
-//
-//		case LORAWAN_MSG_SET_JOIN_PARAM_RSP:
-//			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-//				Status = LoRaStatus_t::JOIN_PARAMETERS_SET;
-//			}
-//			else {
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_DEACTIVATE_DEVICE_RSP:
-//			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-//				Status = LoRaStatus_t::DISCONNECTED;
-//			}
-//			else {
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_GET_RSTACK_CONFIG_RSP:
-//			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-//				Status = LoRaStatus_t::GET_STACK_CONFIG_DONE;
-//				RadioConfig.DataRateIndex = RxMessage->Payload[1];
-//				RadioConfig.TXPwrLevel = RxMessage->Payload[2];
-//				RadioConfig.Options = RxMessage->Payload[3];
-//				RadioConfig.PowerSavingMode = RxMessage->Payload[4];
-//				RadioConfig.NumOfRetrans = RxMessage->Payload[5];
-//				RadioConfig.BandIndex = RxMessage->Payload[6];
-//				RadioConfig.HeadarMACCmdCap = RxMessage->Payload[7];
-//			}
-//			else {
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
-//			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-//				Status = LoRaStatus_t::SET_STACK_CONFIG_DONE;
-//			}
-//			else {
-//				Status = LoRaStatus_t::ERROR_STATE;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_SEND_UDATA_RSP:
-//			switch(RxMessage->Payload[0]) {
-//				case LORAWAN_STATUS_OK:
-//					MessageStatus = UplinkMessageStatus_t::SENT;
-//				break;
-//
-//				case LORAWAN_STATUS_DEVICE_NOT_ACTIVATED:
-//					MessageStatus = UplinkMessageStatus_t::NOT_ACTIVATED;
-//				break;
-//
-//				case LORAWAN_STATUS_DEVICE_BUSY:
-//					MessageStatus = UplinkMessageStatus_t::BUSY;
-//				break;
-//
-//				case LORAWAN_STATUS_CHANNEL_BLOCKED:
-//					MessageStatus = UplinkMessageStatus_t::CHANNEL_BLOCKED;
-//				break;
-//
-//				default:
-//					MessageStatus = UplinkMessageStatus_t::ERROR;
-//				break;
-//			}
-//		break;
-//
-//		case LORAWAN_MSG_SEND_UDATA_IND:
-//			if(!(RxMessage->Payload[0] == 0x00 || RxMessage->Payload[0] == 0x01))
-//				Status = LoRaStatus_t::ERROR_STATE;
-//		break;
-//
-//		case LORAWAN_MSG_RECV_UDATA_IND:
-//			event = true;
-//		break;
-//	}
-//}
+void LoRa::LoRaDevice:: start() {
+	hci.Enable();
+}
+void LoRa::LoRaDevice::stop() {
+	hci.Disable();
+}
+
+void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
+	switch(RxMessage->MsgID) {
+		case LORAWAN_MSG_JOIN_NETWORK_IND:
+			if(RxMessage->Payload[0] == 0x00 || RxMessage->Payload[0] == 0x01) {	//join success with/without info attached
+				ConnectionCompletedCallback();
+				busy = false;
+			}
+		break;
+
+		case LORAWAN_MSG_GET_NWK_STATUS_RSP:
+			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+				if(RxMessage->Payload[1] == 0x02) {									//OTAA active
+					ConnectionCompletedCallback();
+				}
+				else {
+					GetNtwkStatusCallback();
+				}
+				busy = false;
+			}
+		break;
+
+		case LORAWAN_MSG_SET_JOIN_PARAM_RSP:
+			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+				SetJoinParamsCallback();
+				busy = false;
+			}
+		break;
+
+		case LORAWAN_MSG_DEACTIVATE_DEVICE_RSP:
+			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+				DisconnectionCompletedCallback();
+				busy = false;
+			}
+		break;
+
+		case LORAWAN_MSG_GET_RSTACK_CONFIG_RSP:
+			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+				RadioConfig.setDataRateIndex(RxMessage->Payload[1]);
+				RadioConfig.setTXPwrLevel(RxMessage->Payload[2]);
+				RadioConfig.setOptions(RxMessage->Payload[3]);
+				RadioConfig.setPowerSavingMode(RxMessage->Payload[4]);
+				RadioConfig.setNumOfRetrans(RxMessage->Payload[5]);
+				RadioConfig.setBandIndex(RxMessage->Payload[6]);
+				RadioConfig.setHeadarMACCmdCap(RxMessage->Payload[7]);
+				GetRadioConfigCallback(&RadioConfig);
+				busy = false;
+			}
+		break;
+
+		case LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
+			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+				SetRadioConfigCallback();
+				busy = false;
+			}
+		break;
+
+		case LORAWAN_MSG_SEND_UDATA_RSP:
+			switch(RxMessage->Payload[0]) {
+				case LORAWAN_STATUS_OK:
+					UplinkStatus = SENT;
+				break;
+
+				case LORAWAN_STATUS_DEVICE_NOT_ACTIVATED:
+					UplinkStatus = NOT_ACTIVATED;
+				break;
+
+				case LORAWAN_STATUS_DEVICE_BUSY:
+					UplinkStatus = BUSY;
+				break;
+
+				case LORAWAN_STATUS_CHANNEL_BLOCKED:
+					UplinkStatus = CHANNEL_BLOCKED;
+				break;
+
+				default:
+					UplinkStatus =ERROR;
+				break;
+				busy = false;
+			}
+		break;
+
+		case DEVMGMT_MSG_PING_RSP:
+				PingCallback();
+			break;
+
+		case LORAWAN_MSG_RECV_UDATA_IND:
+			event = true;
+		break;
+	}
+}
 
 bool LoRa::LoRaDevice::SetRadioConfig() {
 	busy = true;

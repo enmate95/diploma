@@ -40,6 +40,7 @@ public:
 	TWiMOD_HCI_Message* GetRxMessage();
 	void Enable();
 	void Disable();
+	UartDMA* GetSerial() { return &serial;}
 
 private:
 	UartDMA &serial;
