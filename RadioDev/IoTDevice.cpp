@@ -4,6 +4,8 @@
 #include "main.h"
 #include "uartDevice.h"
 #include "usart.h"
+#include "ESP32.h"
+
 RadioDevice* device;
 
 UartDMA LoRaSerial(&huart2);
@@ -12,13 +14,24 @@ CRC16 crc;
 LoRaHCI::HCI hci(LoRaSerial,slip,crc);
 LoRa::LoRaDevice lora(hci);
 
+UartDMA ESPSerial(&huart1);
+WifiDevice::ESP32 esp(ESPSerial);
+
 void PingHandler() {
-	HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_1);
+	HAL_GPIO_TogglePin(LED1_GPIO_Port,LED1_Pin);
+}
+
+void TestHandler() {
+	HAL_GPIO_TogglePin(LED2_GPIO_Port,LED2_Pin);
 }
 
 extern "C" {
-void uartITHandler() {
+void LoRaUartITHandler() {
 	static_cast<LoRa::LoRaDevice*>(device)->callHandler();
+}
+
+void ESPUartITHandler() {
+	static_cast<WifiDevice::ESP32*>(device)->callHandler();
 }
 }
 

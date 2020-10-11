@@ -44,7 +44,7 @@ Container LoRa::LoRaDevice::getParameter(int param) {
 		break;
 
 		case LORA_UPLINK_STATUS: {
-			DataManager<int> dm;
+			DataManager<UplinkMessageStatus_t> dm;
 			return dm.convertFromData(UplinkStatus);
 		}
 		break;
@@ -118,10 +118,6 @@ void LoRa::LoRaDevice::setCallback(int type, const Container & value) {
 }
 
 void LoRa::LoRaDevice::callHandler() {
-	Rxhandler();
-}
-
-void LoRa::LoRaDevice::Rxhandler() {
 	UartDMA *hciSerial;
 	hciSerial = hci.GetSerial();
 	if(hciSerial->uartHandleFLags()) {
@@ -268,7 +264,8 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 	switch(RxMessage->MsgID) {
 		case LORAWAN_MSG_JOIN_NETWORK_IND:
 			if(RxMessage->Payload[0] == 0x00 || RxMessage->Payload[0] == 0x01) {	//join success with/without info attached
-				ConnectionCompletedCallback();
+				if(ConnectionCompletedCallback != nullptr)
+					ConnectionCompletedCallback();
 				busy = false;
 			}
 		break;
@@ -276,10 +273,12 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 		case LORAWAN_MSG_GET_NWK_STATUS_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
 				if(RxMessage->Payload[1] == 0x02) {									//OTAA active
-					ConnectionCompletedCallback();
+					if(ConnectionCompletedCallback != nullptr)
+						ConnectionCompletedCallback();
 				}
 				else {
-					GetNtwkStatusCallback();
+					if(GetNtwkStatusCallback != nullptr)
+						GetNtwkStatusCallback();
 				}
 				busy = false;
 			}
@@ -287,14 +286,16 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 
 		case LORAWAN_MSG_SET_JOIN_PARAM_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-				SetJoinParamsCallback();
+				if(SetJoinParamsCallback != nullptr)
+					SetJoinParamsCallback();
 				busy = false;
 			}
 		break;
 
 		case LORAWAN_MSG_DEACTIVATE_DEVICE_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-				DisconnectionCompletedCallback();
+				if(DisconnectionCompletedCallback != nullptr)
+					DisconnectionCompletedCallback();
 				busy = false;
 			}
 		break;
@@ -308,14 +309,16 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 				RadioConfig.setNumOfRetrans(RxMessage->Payload[5]);
 				RadioConfig.setBandIndex(RxMessage->Payload[6]);
 				RadioConfig.setHeadarMACCmdCap(RxMessage->Payload[7]);
-				GetRadioConfigCallback(&RadioConfig);
+				if(GetRadioConfigCallback != nullptr)
+					GetRadioConfigCallback(&RadioConfig);
 				busy = false;
 			}
 		break;
 
 		case LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-				SetRadioConfigCallback();
+				if(SetRadioConfigCallback != nullptr)
+					SetRadioConfigCallback();
 				busy = false;
 			}
 		break;
@@ -346,11 +349,13 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 		break;
 
 		case DEVMGMT_MSG_PING_RSP:
+			if(PingCallback != nullptr)
 				PingCallback();
 			break;
 
 		case LORAWAN_MSG_RECV_UDATA_IND:
-			event = true;
+			if(DownlinkEventCallback != nullptr)
+				DownlinkEventCallback(RxMessage->Payload,RxMessage->Length);
 		break;
 	}
 }

@@ -58,9 +58,7 @@ void LoRaHCI::HCI::Wakeup() {
 bool LoRaHCI::HCI::Process() {
 	int SlipLength = 0;
 	uint8_t* SlipRxBuff;
-	serial.stopDMA();
 	serial.copyBuffer(&RawRxBuffer);
-	serial.startDMA();
 	if(RawRxBuffer.length != 0) {
 		for(uint32_t i = 0; i < RawRxBuffer.length; i++) {
 			if(slip.DecodeData(RawRxBuffer.data[i])) {

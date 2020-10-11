@@ -23,25 +23,15 @@ class RadioDevice {
 
 		virtual void setCallback(int type, const Container & value) = 0;
 
-		//while(validData) {callFunc()}
 		virtual void process() = 0;
 
 		bool isBusy() { return busy;}
-
-		bool isEvent() {
-			if(event) {
-				event = false;
-				return true;
-			}
-			return false;
-		}
 
 		virtual bool send(const Container & data) = 0;
 
 		virtual bool sendCmd(int cmd) = 0;
 	protected:
 		bool busy = false;
-		bool event = false;
 };
 
 

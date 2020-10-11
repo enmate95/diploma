@@ -31,9 +31,10 @@ void UartDMA::clearBuffer() {
 }
 
 void UartDMA::copyBuffer(UartData_t* copyTo) {
-	HAL_UART_DMAStop(handler);
-	memcpy(copyTo->data,rawBuff.data,RAW_SIZE);
-	copyTo->length = rawBuff.length;
+	HAL_UART_DMAPause(handler);
+		memcpy(copyTo->data,rawBuff.data,RAW_SIZE);
+		copyTo->length = rawBuff.length;
+	HAL_UART_DMAResume(handler);
 	clearBuffer();
 }
 
@@ -50,7 +51,9 @@ void UartDMA::stopDMA() {
 }
 
 bool UartDMA::setLength() {
-	rawBuff.length = (uint32_t)RAW_SIZE - handler->hdmarx->Instance->NDTR;
+	HAL_UART_DMAPause(handler);
+		rawBuff.length = (uint32_t)RAW_SIZE - handler->hdmarx->Instance->NDTR;
+	HAL_UART_DMAResume(handler);
 	if (rawBuff.length > 0) {
 		return true;
 	}
