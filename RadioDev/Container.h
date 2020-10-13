@@ -22,9 +22,9 @@ public:
 	template <typename T>
 	class containerDerived : public containerBase {
 	public:
-		T data;
-		void set(T newData) {data = newData;}
-		T get() {return data;}
+		T* data;
+		void set(T & newData) {data = &newData;}
+		T& get() {return *data;}
 	};
 	containerBase* ptr = nullptr;
 };

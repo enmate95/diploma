@@ -49,7 +49,7 @@
 
 /* USER CODE END Variables */
 osThreadId TaskHandle;
-uint32_t TaskBuffer[ 128 ];
+uint32_t TaskBuffer[ 256 ];
 osStaticThreadDef_t TaskControlBlock;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,7 +105,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of Task */
-  osThreadStaticDef(Task, StartTask, osPriorityNormal, 0, 128, TaskBuffer, &TaskControlBlock);
+  osThreadStaticDef(Task, StartTask, osPriorityNormal, 0, 256, TaskBuffer, &TaskControlBlock);
   TaskHandle = osThreadCreate(osThread(Task), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */

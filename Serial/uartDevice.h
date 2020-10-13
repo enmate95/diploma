@@ -25,10 +25,9 @@ public:
 	void stopDMA();
 	bool setLength();
 	bool uartHandleFLags();
-	bool startReception();
+	void clearBuffer();
 //private variables
 private:
-	void clearBuffer();
 	UartData_t rawBuff;
 	UART_HandleTypeDef *handler = nullptr;
 };

@@ -12,16 +12,15 @@
 
 template <typename TYPE>
 class DataManager {
-
 public:
-	static Container & convertFromData(TYPE data) {
+	static Container & convertFromData(TYPE & data) {
 		static Container container;
 		static Container::containerDerived<TYPE> derived;
 		container.ptr = &derived;
 		derived.set(data);
 		return container;
 	}
-	static TYPE convertFromContainer(Container con) {return static_cast<Container::containerDerived<TYPE>*>(con.ptr)->get();}
+	static TYPE& convertFromContainer(const Container & con) {return static_cast<Container::containerDerived<TYPE>*>(con.ptr)->get();}
 };
 
 

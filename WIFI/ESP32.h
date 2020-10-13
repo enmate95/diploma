@@ -81,15 +81,18 @@ public:
 	char* getData() {return raw;}
 	void setClinet(int client) {this->client = client;}
 	int getClient() {return client;}
+	void setLength(int length) {this->length = length;}
+	int getLength() {return length;}
 private:
 	char raw[200] = "";
+	int length = 0;
 	int client = 0;
 };
 
 typedef std::function<void(char*)> ESPGetIPCb_t;
 typedef std::function<void()> ESPWifiConnectionCompletedCb_t;
 typedef std::function<void()>ESPWifiDisconnectionCompletedCb_t;
-typedef std::function<void(char*)> ESPDataReceivedEventCb_t;
+typedef std::function<void(char*,int)> ESPDataReceivedEventCb_t;
 typedef std::function<void()> ESPConnectionClosedCb_t;
 typedef std::function<void()> ESPConnectionOpenedCb_t;
 typedef std::function<void(int)> ESPClientConnectedCb_t;
@@ -114,10 +117,13 @@ typedef enum {
 }ESPCb_t;
 
 typedef enum {
+	ESP_DISABLE_ECHO,
 	ESP_TEST,
 	ESP_SET_MODE,
 	ESP_CONNECT_TCP,
 	ESP_CONNECT_WIFI,
+	ESP_DISCONNECT_TCP,
+	ESP_DISCONNECT_WIFI,
 	ESP_GET_IP,
 	ESP_DISABLE_MULTIPLE_CONN,
 	ESP_ENABLE_MULTIPLE_CONN,
@@ -138,17 +144,22 @@ public:
 	bool send(const Container & data);
 	bool sendCmd(int cmd);
 	void callHandler();
+	void start();
+	void stop();
 
 private:
 	void Test();
 	void SetMode();
 	void ConnectTCP();
 	void ConnectWifi();
+	void DisConnectTCP();
+	void DisConnectWifi();
 	void GetIP();
 	void DisableMultipleConnections();
 	void EnableMultipleConnections();
 	void OpenTCPServer();
 	void CloseTCPServer();
+	void DisableEcho();
 
 	ESPGetIPCb_t ESPGetIPCallback;
 	ESPWifiConnectionCompletedCb_t ESPWifiConnectionCompletedCallback;
@@ -161,10 +172,11 @@ private:
 
 	UartDMA &serial;
 	UartData_t raw;
-	ESPParams params;
-	ESPMode_t mode;
-	ESPRole_t role;
-	ESPData toSend;
+	ESPParams* params;
+	ESPMode_t mode = ApAndStation;
+	ESPRole_t role = WIFI_CLIENT;
+	ESPProtocol_t protocol = TCP;
+	ESPData* toSend;
 	bool flag = false;
 	bool test = false;
 };

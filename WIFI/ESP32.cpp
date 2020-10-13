@@ -9,27 +9,23 @@
 #include "DataManager.h"
 
 void WifiDevice::ESP32::init(const Container & data) {
-	DataManager<WifiDevice::ESPMode_t> dm;
-	mode = dm.convertFromContainer(data);
+	mode = DataManager<WifiDevice::ESPMode_t>::convertFromContainer(data);
 }
 
 void WifiDevice::ESP32::setParameter(int param, const Container & value) {
 	switch(param) {
 		case ESP_DEVICE_PARAMS: {
-			DataManager<WifiDevice::ESPParams> dm;
-			params = dm.convertFromContainer(value);
+			params = &DataManager<WifiDevice::ESPParams>::convertFromContainer(value);
 		}
 		break;
 
 		case ESP_MODE: {
-			DataManager<WifiDevice::ESPMode_t> dm;
-			mode = dm.convertFromContainer(value);
+			mode = DataManager<WifiDevice::ESPMode_t>::convertFromContainer(value);
 		}
 		break;
 
 		case ESP_ROLE: {
-			DataManager<WifiDevice::ESPRole_t> dm;
-			role = dm.convertFromContainer(value);
+			role =DataManager<WifiDevice::ESPRole_t>::convertFromContainer(value);
 		}
 		break;
 	}
@@ -38,20 +34,17 @@ void WifiDevice::ESP32::setParameter(int param, const Container & value) {
 Container WifiDevice::ESP32::getParameter(int param) {
 	switch(param) {
 		case ESP_DEVICE_PARAMS: {
-			DataManager<WifiDevice::ESPParams> dm;
-			return dm.convertFromData(params);
+			return DataManager<WifiDevice::ESPParams>::convertFromData(*params);
 		}
 		break;
 
 		case ESP_MODE: {
-			DataManager<WifiDevice::ESPMode_t> dm;
-			return dm.convertFromData(mode);
+			return DataManager<WifiDevice::ESPMode_t>::convertFromData(mode);
 		}
 		break;
 
 		case ESP_ROLE: {
-			DataManager<WifiDevice::ESPRole_t> dm;
-			return dm.convertFromData(role);
+			return DataManager<WifiDevice::ESPRole_t>::convertFromData(role);
 		}
 		break;
 
@@ -65,54 +58,54 @@ Container WifiDevice::ESP32::getParameter(int param) {
 void WifiDevice::ESP32::setCallback(int type, const Container & value) {
 	switch(type) {
 	case ESP_WIFI_CONNECTION_COMPLETE_CB: {
-		DataManager<WifiDevice::ESPWifiConnectionCompletedCb_t> dm;
-		ESPWifiConnectionCompletedCallback = dm.convertFromContainer(value);
+		ESPWifiConnectionCompletedCallback = DataManager<WifiDevice::ESPWifiConnectionCompletedCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_WIFI_DISCONNECTION_COMPLETE_CB: {
-		DataManager<WifiDevice::ESPWifiDisconnectionCompletedCb_t> dm;
-		ESPWifiDisconnectionCompletedCallback = dm.convertFromContainer(value);
+		ESPWifiDisconnectionCompletedCallback = DataManager<WifiDevice::ESPWifiDisconnectionCompletedCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_DATA_RECEIVED_CB: {
-		DataManager<WifiDevice::ESPDataReceivedEventCb_t> dm;
-		ESPDataReceivedEventCallback = dm.convertFromContainer(value);
+		ESPDataReceivedEventCallback = DataManager<WifiDevice::ESPDataReceivedEventCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_CONNECTION_OPENED_CB: {
-		DataManager<WifiDevice::ESPConnectionOpenedCb_t> dm;
-		ESPConnectionOpenedCallback = dm.convertFromContainer(value);
+		ESPConnectionOpenedCallback = DataManager<WifiDevice::ESPConnectionOpenedCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_CONNECTION_CLOSED_CB: {
-		DataManager<WifiDevice::ESPConnectionClosedCb_t> dm;
-		ESPConnectionClosedCallback = dm.convertFromContainer(value);
+		ESPConnectionClosedCallback = DataManager<WifiDevice::ESPConnectionClosedCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_GET_IP_CB: {
-		DataManager<WifiDevice::ESPGetIPCb_t> dm;
-		ESPGetIPCallback = dm.convertFromContainer(value);
+		ESPGetIPCallback = DataManager<WifiDevice::ESPGetIPCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_CLIENT_CONNECTED_CB: {
-		DataManager<WifiDevice::ESPClientConnectedCb_t> dm;
-		ESPClientConnectedCallback = dm.convertFromContainer(value);
+		ESPClientConnectedCallback = DataManager<WifiDevice::ESPClientConnectedCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	case ESP_TEST_CB: {
-		DataManager<WifiDevice::ESPTestCb_t> dm;
-		ESPTestCallback = dm.convertFromContainer(value);
+		ESPTestCallback = DataManager<WifiDevice::ESPTestCb_t>::convertFromContainer(value);
 	}
 	break;
 
 	}
+}
+
+void WifiDevice::ESP32::start() {
+	serial.startDMA();
+}
+
+void WifiDevice::ESP32::stop() {
+	serial.stopDMA();
 }
 
 void WifiDevice::ESP32::callHandler() {
@@ -126,61 +119,101 @@ void WifiDevice::ESP32::callHandler() {
 void WifiDevice::ESP32::process() {
 	if(flag) {
 		flag = false;
+		busy = false;
 		serial.copyBuffer(&raw);
-
 		if(strstr((char*)raw.data,"WIFI CONNECTED") != nullptr) {
-			busy = false;
 			if(ESPWifiConnectionCompletedCallback != nullptr)
 				ESPWifiConnectionCompletedCallback();
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
-		else if(strstr((char*)raw.data,"WIFI DISCONNECTED") != nullptr) {
-			busy = false;
+		else if(strstr((char*)raw.data,"WIFI DISCONNECT") != nullptr) {
 			if(ESPWifiDisconnectionCompletedCallback != nullptr)
 				ESPWifiDisconnectionCompletedCallback();
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
 		else if(strstr((char*)raw.data,",CONNECT") != nullptr) {
 			char *ptr = strstr((char*)raw.data,",CONNECT");
-			busy = false;
 			if(ESPClientConnectedCallback != nullptr)
 				ESPClientConnectedCallback(atoi(ptr--));
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
 		else if(strstr((char*)raw.data,"CONNECT") != nullptr) {
-			busy = false;
 			if(ESPConnectionOpenedCallback != nullptr)
 				ESPConnectionOpenedCallback();
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
-		else if(strstr((char*)raw.data,",CLOSED") != nullptr) {
-			busy = false;
+		else if(strstr((char*)raw.data,"CLOSED") != nullptr) {
 			if(ESPConnectionClosedCallback != nullptr)
 				ESPConnectionClosedCallback();
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
 		else if(strstr((char*)raw.data,"STAIP") != nullptr) {
 			char *ptr = strstr((char*)raw.data,"STAIP");
 			ptr += 7;
-			params.setIP(ptr);
-			busy = false;
+			params->setIP(ptr);
 			if(ESPGetIPCallback != nullptr)
-				ESPGetIPCallback(params.getIP());
+				ESPGetIPCallback(params->getIP());
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
-		else if(strstr((char*)raw.data,",>") != nullptr && test) {
-			char *data = toSend.getData();
+		else if(strstr((char*)raw.data,">") != nullptr) {
+			char *data = toSend->getData();
 			serial.send((uint8_t*)data,strlen(data));
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
-		else if(strstr((char*)raw.data,",SEND OK") != nullptr && test) {
-			busy = false;
+		else if(strstr((char*)raw.data,"SEND OK") != nullptr) {
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
-		else if(strstr((char*)raw.data,",OK") != nullptr && test) {
-			busy = false;
+		else if(strstr((char*)raw.data,"+IPD") != nullptr) {
+			char *ptr = strstr((char*)raw.data,"+IPD");
+			ptr += 5;
+			int length = atoi(ptr);
+			ptr += 2;
+			if(ESPDataReceivedEventCallback != nullptr)
+				ESPDataReceivedEventCallback(ptr,length);
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
+		}
+		else if((strstr((char*)raw.data,"OK") != nullptr) && test) {
 			test = false;
 			if(ESPTestCallback != nullptr)
 				ESPTestCallback();
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
+		}
+		else if((strstr((char*)raw.data,"ATE0") != nullptr)) {
+			serial.stopDMA();
+			serial.clearBuffer();
+			serial.startDMA();
 		}
 	}
+}
+
+void WifiDevice::ESP32::DisableEcho() {
+	serial.send((uint8_t*)"ATE0\r\n",6);
 }
 
 void WifiDevice::ESP32::SetMode() {
 	char toSend[20] = "AT+CWMODE=";
 	char num[10] = "";
+	busy = true;
 	switch(mode) {
 		case AccesPoint:
 				sprintf(num,"%d\r\n",2);
@@ -202,16 +235,18 @@ void WifiDevice::ESP32::SetMode() {
 }
 
 void WifiDevice::ESP32::Test() {
+	busy = true;
 	test = true;
 	serial.send((uint8_t*)"AT\r\n", 4);
 }
 
 void WifiDevice::ESP32::ConnectTCP() {
 	//AT+CIPSTART="TCP","IP",port
-	char* ServerIP = params.getIP();
-	int port = params.getPort();
+	char* ServerIP = params->getIP();
+	int port = params->getPort();
 	char toSend[50] = "AT+CIPSTART=\"TCP\",\"";
 	char num[10] = "";
+	busy = true;
 	strcat(toSend,ServerIP);
 	strcat(toSend,"\",");
 	sprintf(num,"%d\r\n",port);
@@ -222,8 +257,9 @@ void WifiDevice::ESP32::ConnectTCP() {
 void WifiDevice::ESP32::ConnectWifi() {
 	//AT+CWJAP="SSID","password"
 	char toSend[50] = "AT+CWJAP=\"";
-	char* passkey = params.getPasskey();
-	char* ssid = params.getSSID();
+	char* passkey = params->getPasskey();
+	char* ssid = params->getSSID();
+	busy = true;
 	strcat(toSend,ssid);
 	strcat(toSend,"\",\"");
 	strcat(toSend,passkey);
@@ -231,25 +267,41 @@ void WifiDevice::ESP32::ConnectWifi() {
 	serial.send((uint8_t*)toSend,strlen(toSend));
 }
 
+void WifiDevice::ESP32::DisConnectWifi() {
+	//AT+CWQAP
+	busy = true;
+	serial.send((uint8_t*)"AT+CWQAP\r\n",10);
+}
+
+void WifiDevice::ESP32::DisConnectTCP() {
+	//AT+CIPCLOSE=0
+	busy = true;
+	serial.send((uint8_t*)"AT+CIPCLOSE\r\n",14);
+}
+
 void WifiDevice::ESP32::GetIP() {
 	//AT+CIFSR
+	busy = true;
 	serial.send((uint8_t*)"AT+CIFSR\r\n",10);
 }
 
 void WifiDevice::ESP32::EnableMultipleConnections() {
 	//AT+CIPMUX
+	busy = true;
 	serial.send((uint8_t*)"AT+CIPMUX=1\r\n",12);
 }
 
 void WifiDevice::ESP32::DisableMultipleConnections() {
 	//AT+CIPMUX
+	busy = true;
 	serial.send((uint8_t*)"AT+CIPMUX=0\r\n",12);
 }
 
 void WifiDevice::ESP32::OpenTCPServer() {
 	char toSend[50] = "AT+CIPSERVER=1,";
 	char num[10] = "";
-	int port = params.getPort();
+	busy = true;
+	int port = params->getPort();
 	sprintf(num,"%d\r\n",port);
 	strcat(toSend,num);
 	serial.send((uint8_t*)toSend,strlen(toSend));
@@ -257,35 +309,53 @@ void WifiDevice::ESP32::OpenTCPServer() {
 
 void WifiDevice::ESP32::CloseTCPServer() {
 	//AT+CIPCLOSE=0
+	busy = true;
 	serial.send((uint8_t*)"AT+CIPCLOSE=0\r\n",15);
 }
 
 
 bool WifiDevice::ESP32::send(const Container & data) {
-	DataManager<ESPData> dm;
-	toSend = dm.convertFromContainer(data);
+	toSend = &DataManager<ESPData>::convertFromContainer(data);
 	char send[30] = "AT+CIPSEND=";
 	char sizestr[10] = "";
-	int size = strlen(toSend.getData());
+	int size = toSend->getLength();
 	char client[10] ="";
-
-	sprintf(client,"%d",toSend.getClient());
+	busy = true;
+	sprintf(client,"%d",toSend->getClient());
 	sprintf(sizestr,"%d",size);
 
 	switch(role) {
-	case WIFI_CLIENT:
-			strcat(send,sizestr);
-			strcat(send,"\r\n");
-			serial.send((uint8_t*)send,strlen(send));
+		case WIFI_CLIENT:
+			if(protocol == TCP) {
+				strcat(send,sizestr);
+				strcat(send,"\r\n");
+				serial.send((uint8_t*)send,strlen(send));
+			}
+			else {
+				//TODO:
+			}
 		break;
 
-	case WIFI_SERVER:
-		strcat(send,client);
-		strcat(send,",");
-		strcat(send,sizestr);
-		strcat(send,"\r\n");
-		serial.send((uint8_t*)send,strlen(send));
+		case WIFI_SERVER:
+			if(protocol == TCP) {
+				strcat(send,client);
+				strcat(send,",");
+				strcat(send,sizestr);
+				strcat(send,"\r\n");
+				serial.send((uint8_t*)send,strlen(send));
+			}
+			else {
+				//TODO:
+			}
 		break;
+
+		case BLE_CENTRAL:
+			//TODO:
+			break;
+
+		case BLE_PERIPHERAL:
+			//TODO:
+			break;
 	}
 
 	return true;
@@ -328,6 +398,18 @@ bool WifiDevice::ESP32::sendCmd(int cmd) {
 		case ESP_CLOSE_TCP_SERVER:
 			CloseTCPServer();
 		break;
+
+		case ESP_DISCONNECT_TCP:
+			DisConnectTCP();
+		break;
+
+		case ESP_DISCONNECT_WIFI:
+			DisConnectWifi();
+		break;
+
+		case ESP_DISABLE_ECHO:
+			DisableEcho();
+			break;
 	}
 
 	return true;
