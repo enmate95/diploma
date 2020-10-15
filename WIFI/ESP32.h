@@ -38,11 +38,13 @@ typedef enum {
 class  ESPParams{
 public:
 		void setIP(char *IP) { memcpy(this->IP,IP,sizeof(this->IP));}
+		void setServerIP(char *ServerIP) { memcpy(this->ServerIP,ServerIP,sizeof(this->ServerIP));}
 		void setSSID(char* SSID) { memcpy(this->SSID,SSID,sizeof(this->SSID));}
 		void setPasskey(char* Passkey) { memcpy(this->Passkey,Passkey,sizeof(this->Passkey));}
 		void setPort(int port) {this->port = port;}
 
 		char* getIP() {return IP;}
+		char* getServerIP() {return ServerIP;}
 		char* getSSID() {return SSID;}
 		char* getPasskey() {return Passkey;}
 		int getPort() {return port;}
@@ -54,12 +56,14 @@ public:
 				memcpy(this->IP,other.IP,sizeof(this->IP));
 				memcpy(this->SSID,other.SSID,sizeof(this->SSID));
 				memcpy(this->Passkey,other.Passkey,sizeof(this->Passkey));
+				memcpy(this->ServerIP,other.ServerIP,sizeof(this->ServerIP));
 				this->port = other.port;
 			}
 			return *this;
 		}
 private:
 	char IP[50];
+	char ServerIP[50];
 	char SSID[100];
 	char Passkey[50];
 	int port;
@@ -97,11 +101,11 @@ typedef std::function<void()> ESPConnectionClosedCb_t;
 typedef std::function<void()> ESPConnectionOpenedCb_t;
 typedef std::function<void(int)> ESPClientConnectedCb_t;
 typedef std::function<void()> ESPTestCb_t;
-typedef std::function<void()> ESPStartToSendCb_t;
+typedef std::function<void(bool)> ESPWifiisConnectedCb_t;
+
 
 typedef enum {
 	ESP_DEVICE_PARAMS,
-	ESP_MODE,
 	ESP_ROLE,
 }ESPParam_t;
 
@@ -114,10 +118,10 @@ typedef enum {
 	ESP_CONNECTION_CLOSED_CB,
 	ESP_CLIENT_CONNECTED_CB,
 	ESP_TEST_CB,
+	ESP_WIFI_IS_CONNECTED_CB,
 }ESPCb_t;
 
 typedef enum {
-	ESP_DISABLE_ECHO,
 	ESP_TEST,
 	ESP_SET_MODE,
 	ESP_CONNECT_TCP,
@@ -129,6 +133,7 @@ typedef enum {
 	ESP_ENABLE_MULTIPLE_CONN,
 	ESP_OPEN_TCP_SERVER,
 	ESP_CLOSE_TCP_SERVER,
+	ESP_GET_WIFI_STATUS,
 }ESPCmd_t;
 
 class ESP32: public RadioDevice{
@@ -159,7 +164,7 @@ private:
 	void EnableMultipleConnections();
 	void OpenTCPServer();
 	void CloseTCPServer();
-	void DisableEcho();
+	void GetWifiConnectionStatus();
 
 	ESPGetIPCb_t ESPGetIPCallback;
 	ESPWifiConnectionCompletedCb_t ESPWifiConnectionCompletedCallback;
@@ -169,6 +174,7 @@ private:
 	ESPConnectionOpenedCb_t ESPConnectionOpenedCallback;
 	ESPClientConnectedCb_t ESPClientConnectedCallback;
 	ESPTestCb_t ESPTestCallback;
+	ESPWifiisConnectedCb_t ESPWifiisConnectedCallback;
 
 	UartDMA &serial;
 	UartData_t raw;

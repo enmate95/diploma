@@ -363,9 +363,9 @@ class LoRaDevice :public RadioDevice {
 		LoRaHCI::TWiMOD_HCI_Message TxMessage;
 		LoRaHCI::HCI &hci;
 		uint8_t Port = 0x02;
-		LoRaRadioConfig RadioConfig;
-		LoRaJoinParams JoinParams;
-		LoRaDeviceParams DeviceParams;
+		LoRaRadioConfig *RadioConfig;
+		LoRaJoinParams *JoinParams;
+		LoRaDeviceParams *DeviceParams;
 		UplinkMessageStatus_t UplinkStatus = IDLE;
 		bool flag = false;
 };

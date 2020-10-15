@@ -30,6 +30,13 @@ class RadioDevice {
 		virtual bool send(const Container & data) = 0;
 
 		virtual bool sendCmd(int cmd) = 0;
+
+		virtual void start() = 0;
+
+		virtual void stop() = 0;
+
+		virtual void callHandler() = 0;
+
 	protected:
 		bool busy = false;
 };

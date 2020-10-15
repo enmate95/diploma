@@ -8,21 +8,18 @@
 #include "LORA.h"
 
 void LoRa::LoRaDevice::init(const Container & data) {
-	DataManager<LoRaJoinParams> dm;
-	JoinParams = dm.convertFromContainer(data);
+	JoinParams = &DataManager<LoRaJoinParams>::convertFromContainer(data);
 }
 
 void LoRa::LoRaDevice::setParameter(int param, const Container & data) {
 	switch(param) {
 		case LORA_RADIO_CONFIG: {
-			DataManager<LoRaRadioConfig> dm;
-			RadioConfig = dm.convertFromContainer(data);
+			RadioConfig = &DataManager<LoRaRadioConfig>::convertFromContainer(data);
 		}
 		break;
 
 		case LORA_DEVICE_PARAMS: {
-			DataManager<LoRaDeviceParams> dm;
-			DeviceParams = dm.convertFromContainer(data);
+			DeviceParams = &DataManager<LoRaDeviceParams>::convertFromContainer(data);
 		}
 	default:
 		break;
@@ -32,20 +29,17 @@ void LoRa::LoRaDevice::setParameter(int param, const Container & data) {
 Container LoRa::LoRaDevice::getParameter(int param) {
 	switch(param) {
 		case LORA_RADIO_CONFIG: {
-			DataManager<LoRaRadioConfig> dm;
-			return dm.convertFromData(RadioConfig);
+			return DataManager<LoRaRadioConfig>::convertFromData(*RadioConfig);
 		}
 		break;
 
 		case LORA_DEVICE_PARAMS: {
-			DataManager<LoRaDeviceParams> dm;
-			return dm.convertFromData(DeviceParams);
+			return DataManager<LoRaDeviceParams>::convertFromData(*DeviceParams);
 		}
 		break;
 
 		case LORA_UPLINK_STATUS: {
-			DataManager<UplinkMessageStatus_t> dm;
-			return dm.convertFromData(UplinkStatus);
+			return DataManager<UplinkMessageStatus_t>::convertFromData(UplinkStatus);
 		}
 		break;
 
@@ -59,56 +53,47 @@ Container LoRa::LoRaDevice::getParameter(int param) {
 void LoRa::LoRaDevice::setCallback(int type, const Container & value) {
 	switch(type) {
 		case LORA_GET_RADIO_CONFIG_CB: {
-			DataManager<LORAGetRadioConfigCb_t> dm;
-			GetRadioConfigCallback = dm.convertFromContainer(value);
+			GetRadioConfigCallback = DataManager<LORAGetRadioConfigCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_SET_RADIO_CONFIG_CB: {
-			DataManager<LORASetRadioConfigCb_t> dm;
-			SetRadioConfigCallback = dm.convertFromContainer(value);
+			SetRadioConfigCallback = DataManager<LORASetRadioConfigCb_t> ::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_SET_JOIN_PARAMS_CB: {
-			DataManager<LORASetJoinParamsCb_t> dm;
-			SetJoinParamsCallback = dm.convertFromContainer(value);
+			SetJoinParamsCallback = DataManager<LORASetJoinParamsCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_GET_NTWK_STATUS_CB: {
-			DataManager<LORAGetNtwkStatusCb_t> dm;
-			GetNtwkStatusCallback = dm.convertFromContainer(value);
+			GetNtwkStatusCallback = DataManager<LORAGetNtwkStatusCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_CONNECTION_COMPLETE_CB: {
-			DataManager<LORAConnectionCompletedCb_t> dm;
-			ConnectionCompletedCallback = dm.convertFromContainer(value);
+			ConnectionCompletedCallback = DataManager<LORAConnectionCompletedCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_DISCONNECTION_COMPLETE_CB: {
-			DataManager<LORADisconnectionCompletedCb_t> dm;
-			DisconnectionCompletedCallback = dm.convertFromContainer(value);
+			DisconnectionCompletedCallback = DataManager<LORADisconnectionCompletedCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_GET_DEVICE_PARAMS_CB: {
-			DataManager<LORAGetDeviceParamsCb_t> dm;
-			GetDeviceParamsCallback = dm.convertFromContainer(value);
+			GetDeviceParamsCallback = DataManager<LORAGetDeviceParamsCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_DOWNLNK_EVENT_CB: {
-			DataManager<LORADownlinkEventCb_t> dm;
-			DownlinkEventCallback = dm.convertFromContainer(value);
+			DownlinkEventCallback = DataManager<LORADownlinkEventCb_t>::convertFromContainer(value);
 		}
 		break;
 
 		case LORA_PING_CB: {
-			DataManager<LORAPingCb_t> dm;
-			PingCallback = dm.convertFromContainer(value);
+			PingCallback = DataManager<LORAPingCb_t>::convertFromContainer(value);
 		}
 		break;
 
@@ -128,9 +113,8 @@ void LoRa::LoRaDevice::callHandler() {
 }
 
 bool LoRa::LoRaDevice::send(const Container & data) {
-	DataManager<HCIMessage> dm;
 	HCIMessage message;
-	message = dm.convertFromContainer(data);
+	message = DataManager<HCIMessage>::convertFromContainer(data);
 	busy = true;
 	return hci.SendMessage(*message.get());
 }
@@ -205,11 +189,16 @@ bool LoRa::LoRaDevice::sendCmd(int cmd) {
 }
 
 void LoRa::LoRaDevice::process() {
+	UartDMA *hciSerial;
+	hciSerial = hci.GetSerial();
 	if(flag) {
 		flag = false;
 		if(hci.Process()) {
 			HandleRxMessage(hci.GetRxMessage());
 		}
+		hciSerial->stopDMA();
+		hciSerial->clearBuffer();
+		hciSerial->startDMA();
 	}
 }
 
@@ -302,15 +291,15 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 
 		case LORAWAN_MSG_GET_RSTACK_CONFIG_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-				RadioConfig.setDataRateIndex(RxMessage->Payload[1]);
-				RadioConfig.setTXPwrLevel(RxMessage->Payload[2]);
-				RadioConfig.setOptions(RxMessage->Payload[3]);
-				RadioConfig.setPowerSavingMode(RxMessage->Payload[4]);
-				RadioConfig.setNumOfRetrans(RxMessage->Payload[5]);
-				RadioConfig.setBandIndex(RxMessage->Payload[6]);
-				RadioConfig.setHeadarMACCmdCap(RxMessage->Payload[7]);
+				RadioConfig->setDataRateIndex(RxMessage->Payload[1]);
+				RadioConfig->setTXPwrLevel(RxMessage->Payload[2]);
+				RadioConfig->setOptions(RxMessage->Payload[3]);
+				RadioConfig->setPowerSavingMode(RxMessage->Payload[4]);
+				RadioConfig->setNumOfRetrans(RxMessage->Payload[5]);
+				RadioConfig->setBandIndex(RxMessage->Payload[6]);
+				RadioConfig->setHeadarMACCmdCap(RxMessage->Payload[7]);
 				if(GetRadioConfigCallback != nullptr)
-					GetRadioConfigCallback(&RadioConfig);
+					GetRadioConfigCallback(RadioConfig);
 				busy = false;
 			}
 		break;
@@ -365,13 +354,13 @@ bool LoRa::LoRaDevice::SetRadioConfig() {
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_SET_RSTACK_CONFIG_REQ;
 	TxMessage.Length = 7;
-	TxMessage.Payload[0] = RadioConfig.getDataRateIndex();
-	TxMessage.Payload[1] = RadioConfig.getTXPwrLevel();
-	TxMessage.Payload[2] = RadioConfig.getOptions();
-	TxMessage.Payload[3] = RadioConfig.getPowerSavingMode();
-	TxMessage.Payload[4] = RadioConfig.getNumOfRetrans();
-	TxMessage.Payload[5] = RadioConfig.getBandIndex();
-	TxMessage.Payload[6] = RadioConfig.getHeadarMACCmdCap();
+	TxMessage.Payload[0] = RadioConfig->getDataRateIndex();
+	TxMessage.Payload[1] = RadioConfig->getTXPwrLevel();
+	TxMessage.Payload[2] = RadioConfig->getOptions();
+	TxMessage.Payload[3] = RadioConfig->getPowerSavingMode();
+	TxMessage.Payload[4] = RadioConfig->getNumOfRetrans();
+	TxMessage.Payload[5] = RadioConfig->getBandIndex();
+	TxMessage.Payload[6] = RadioConfig->getHeadarMACCmdCap();
 	return hci.SendMessage(TxMessage);
 }
 
@@ -388,8 +377,8 @@ bool LoRa::LoRaDevice::SetConnectionParams() {
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_SET_JOIN_PARAM_REQ;
 	TxMessage.Length  = 24;
-	memcpy(TxMessage.Payload,JoinParams.getAppEUI(),APP_EUI_SIZE);
-	memcpy(TxMessage.Payload + 8,JoinParams.getAppKey() ,APP_KEY_SIZE);
+	memcpy(TxMessage.Payload,JoinParams->getAppEUI(),APP_EUI_SIZE);
+	memcpy(TxMessage.Payload + 8,JoinParams->getAppKey() ,APP_KEY_SIZE);
 	return hci.SendMessage(TxMessage);
 }
 
