@@ -26,6 +26,7 @@ public:
 	bool setLength();
 	bool uartHandleFLags();
 	void clearBuffer();
+	UartData_t *getRaw();
 //private variables
 private:
 	UartData_t rawBuff;

@@ -20,9 +20,10 @@ bool UartDMA::uartHandleFLags() {
 	return false;
 }
 
+UartData_t* UartDMA::getRaw() { return &rawBuff;}
 
 void UartDMA::clearBuffer() {
-	for(int i = 0; i < RAW_SIZE; i++) {
+	for(uint32_t i = 0; i < rawBuff.length; i++) {
 		rawBuff.data[i] = 0;
 	}
 	rawBuff.length = 0;
@@ -30,7 +31,7 @@ void UartDMA::clearBuffer() {
 
 void UartDMA::copyBuffer(UartData_t* copyTo) {
 	HAL_UART_DMAPause(handler);
-	memcpy(copyTo->data,rawBuff.data,RAW_SIZE);
+	memcpy(copyTo->data,rawBuff.data,rawBuff.length);
 	copyTo->length = rawBuff.length;
 	HAL_UART_DMAResume(handler);
 }

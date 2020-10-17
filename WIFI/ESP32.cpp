@@ -111,124 +111,157 @@ void WifiDevice::ESP32::callHandler() {
 	}
 }
 
+void WifiDevice::ESP32::ClearBuff() {
+	for(uint32_t i = 0; i < raw.length;i++)
+		raw.data[i] = 0;
+	raw.length = 0;
+}
+
 void WifiDevice::ESP32::process() {
 	if(flag) {
 		serial.copyBuffer(&raw);
-		if(strstr((char*)raw.data,"WIFI CONNECTED") != nullptr) {
-			if(ESPWifiConnectionCompletedCallback != nullptr)
-				ESPWifiConnectionCompletedCallback();
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
+		char* ptr;
+
+		ptr = strstr((char*)raw.data,"ERROR");
+		if(ptr != nullptr) {
+			HandleStatusERROR();
 		}
-		else if(strstr((char*)raw.data,"WIFI DISCONNECT") != nullptr) {
-			if(ESPWifiDisconnectionCompletedCallback != nullptr)
-				ESPWifiDisconnectionCompletedCallback();
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
+		ptr = strstr((char*)raw.data,"OK");
+		if(ptr != nullptr) {
+			statusOk = true;
+			HandleStatusOK();
 		}
-		else if(strstr((char*)raw.data,",CONNECT") != nullptr) {
-			char *ptr = strstr((char*)raw.data,",CONNECT");
-			if(ESPClientConnectedCallback != nullptr)
-				ESPClientConnectedCallback(atoi(ptr--));
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
+
+		ptr = strstr((char*)raw.data,"+IPD");
+		if(ptr != nullptr) {
+			HandleDataReception(ptr);
 		}
-		else if(strstr((char*)raw.data,"CONNECT") != nullptr) {
-			if(ESPConnectionOpenedCallback != nullptr)
-				ESPConnectionOpenedCallback();
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
+
+		if(role == WIFI_CLIENT) {
+			ptr = strstr((char*)raw.data,"CLOSED");
+			HandleServerDisconnection();
 		}
-		else if(strstr((char*)raw.data,"CLOSED") != nullptr) {
-			if(ESPConnectionClosedCallback != nullptr)
-				ESPConnectionClosedCallback();
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
-		}
-		else if(strstr((char*)raw.data,"STAIP") != nullptr) {
-			char *ptr = strstr((char*)raw.data,"STAIP");
-			ptr += 7;
-			params->setIP(ptr);
-			if(ESPGetIPCallback != nullptr)
-				ESPGetIPCallback(params->getIP());
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
-		}
-		else if(strstr((char*)raw.data,">") != nullptr) {
-			char *data = toSend->getData();
-			serial.send((uint8_t*)data,strlen(data));
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
-		}
-		else if(strstr((char*)raw.data,"SEND OK") != nullptr) {
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
-		}
-		else if(strstr((char*)raw.data,"+IPD") != nullptr) {
-			char *ptr = strstr((char*)raw.data,"+IPD");
-			ptr += 5;
-			int length = atoi(ptr);
-			while(*ptr != ':') {
-				ptr++;
+		else if(role == WIFI_SERVER) {
+			ptr = strstr((char*)raw.data,",CONNECT");
+			if(ptr != nullptr) {
+				HandleClientConnection(ptr);
 			}
-			ptr++;
-			if(ESPDataReceivedEventCallback != nullptr)
-				ESPDataReceivedEventCallback(ptr,length);
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			busy = false;
-		}
-		else if((strstr((char*)raw.data,"OK") != nullptr) && test) {
-			test = false;
-			if(ESPTestCallback != nullptr)
-				ESPTestCallback();
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
-		}
-		else if((strstr((char*)raw.data,"+CWJAP") != nullptr)) {
-			if(strstr((char*)raw.data,params->getSSID()) != nullptr) {
-				if(ESPWifiisConnectedCallback != nullptr)
-					ESPWifiisConnectedCallback(true);
+			ptr = strstr((char*)raw.data,",CLOSED");
+			if(ptr != nullptr) {
+				HandleClientDisconnection(ptr);
 			}
-			else {
-				if(ESPWifiisConnectedCallback != nullptr)
-					ESPWifiisConnectedCallback(false);
-			}
-			serial.stopDMA();
-			serial.clearBuffer();
-			serial.startDMA();
-			flag = false;
-			busy = false;
 		}
 	}
+}
+
+void WifiDevice::ESP32::HandleDataReception(char* ptr) {
+	int length = atoi(ptr + 5);
+	while(*ptr != ':') {
+		ptr++;
+	}
+	ptr++;
+	if(ESPDataReceivedEventCallback != nullptr)
+		ESPDataReceivedEventCallback(ptr,length);
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+}
+
+void WifiDevice::ESP32::HandleServerDisconnection() {
+	if(ESPServerDisconnectedCallback != nullptr)
+		ESPServerDisconnectedCallback();
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+}
+
+void WifiDevice::ESP32::HandleStatusOK()  {
+	if(strstr((char*)raw.data,"WIFI CONNECTED") != nullptr) {
+		if(ESPWifiConnectionCompletedCallback != nullptr)
+			ESPWifiConnectionCompletedCallback();
+	}
+	else if(strstr((char*)raw.data,"WIFI DISCONNECT") != nullptr) {
+		if(ESPWifiDisconnectionCompletedCallback != nullptr)
+			ESPWifiDisconnectionCompletedCallback();
+	}
+	else if(strstr((char*)raw.data,"CONNECT") != nullptr) {
+		if(ESPConnectionOpenedCallback != nullptr)
+			ESPConnectionOpenedCallback();
+	}
+	else if(strstr((char*)raw.data,"CLOSED") != nullptr) {
+		if(ESPConnectionClosedCallback != nullptr)
+			ESPConnectionClosedCallback();
+	}
+	else if(strstr((char*)raw.data,"STAIP") != nullptr) {
+		char *ptr = strstr((char*)raw.data,"STAIP") + 7;
+		params->setIP(ptr);
+		if(ESPGetIPCallback != nullptr)
+			ESPGetIPCallback(params->getIP());
+	}
+	else if(strstr((char*)raw.data,">") != nullptr) {
+		char *data = toSend->getData();
+		serial.send((uint8_t*)data,strlen(data));
+	}
+	else if((strstr((char*)raw.data,"STATUS:") != nullptr)) {
+		char* ptr = strstr((char*)raw.data,"STATUS:") + 7;
+		int status = atoi(ptr);
+
+		if(status < 5) {
+			if(ESPWifiisConnectedCallback != nullptr)
+				ESPWifiisConnectedCallback(true);
+		}
+		else if(status == 5){
+			if(ESPWifiisConnectedCallback != nullptr)
+				ESPWifiisConnectedCallback(false);
+		}
+	}
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+bool WifiDevice::ESP32::isStatusOk() {
+	if(statusOk) {
+		statusOk = false;
+		return true;
+	}
+	return false;
+}
+
+void WifiDevice::ESP32::HandleStatusERROR() {
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+void WifiDevice::ESP32::HandleClientDisconnection(char* ptr) {
+	if(ESPClientConnectedCallback != nullptr)
+		ESPClientConnectedCallback(atoi(ptr--));
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+}
+
+void WifiDevice::ESP32::HandleClientConnection(char* ptr) {
+	if(ESPClientConnectedCallback != nullptr)
+		ESPClientConnectedCallback(atoi(ptr--));
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
 }
 
 void WifiDevice::ESP32::SetMode() {
@@ -255,7 +288,6 @@ void WifiDevice::ESP32::SetMode() {
 }
 
 void WifiDevice::ESP32::Test() {
-	test = true;
 	serial.send((uint8_t*)"AT\r\n", 4);
 }
 
@@ -286,7 +318,7 @@ void WifiDevice::ESP32::ConnectWifi() {
 
 void WifiDevice::ESP32::GetWifiConnectionStatus() {
 	//AT+CWQAP
-	serial.send((uint8_t*)"AT+CWJAP?\r\n",11);
+	serial.send((uint8_t*)"AT+CIPSTATUS\r\n",14);
 }
 
 void WifiDevice::ESP32::DisConnectWifi() {
@@ -306,12 +338,12 @@ void WifiDevice::ESP32::GetIP() {
 
 void WifiDevice::ESP32::EnableMultipleConnections() {
 	//AT+CIPMUX
-	serial.send((uint8_t*)"AT+CIPMUX=1\r\n",12);
+	serial.send((uint8_t*)"AT+CIPMUX=1\r\n",13);
 }
 
 void WifiDevice::ESP32::DisableMultipleConnections() {
 	//AT+CIPMUX
-	serial.send((uint8_t*)"AT+CIPMUX=0\r\n",12);
+	serial.send((uint8_t*)"AT+CIPMUX=0\r\n",13);
 }
 
 void WifiDevice::ESP32::OpenTCPServer() {
@@ -327,7 +359,6 @@ void WifiDevice::ESP32::CloseTCPServer() {
 	//AT+CIPCLOSE=0
 	serial.send((uint8_t*)"AT+CIPCLOSE=0\r\n",15);
 }
-
 
 bool WifiDevice::ESP32::send(const Container & data) {
 	toSend = &DataManager<ESPData>::convertFromContainer(data);

@@ -94,12 +94,21 @@ private:
 };
 
 typedef std::function<void(char*)> ESPGetIPCb_t;
+
 typedef std::function<void()> ESPWifiConnectionCompletedCb_t;
 typedef std::function<void()>ESPWifiDisconnectionCompletedCb_t;
+
 typedef std::function<void(char*,int)> ESPDataReceivedEventCb_t;
+
 typedef std::function<void()> ESPConnectionClosedCb_t;
 typedef std::function<void()> ESPConnectionOpenedCb_t;
+typedef std::function<void()> ESPServerDisconnectedCb_t;
+
+typedef std::function<void()> ESPServerOpenedCb_t;
+typedef std::function<void()> ESPServerClosedCb_t;
 typedef std::function<void(int)> ESPClientConnectedCb_t;
+typedef std::function<void(int)> ESPClientDisonnectedCb_t;
+
 typedef std::function<void()> ESPTestCb_t;
 typedef std::function<void(bool)> ESPWifiisConnectedCb_t;
 
@@ -116,6 +125,10 @@ typedef enum {
 	ESP_DATA_RECEIVED_CB,
 	ESP_CONNECTION_OPENED_CB,
 	ESP_CONNECTION_CLOSED_CB,
+	ESP_SERVER_DISCONNECTED_CB,
+	ESP_SERVER_OPENED_CB,
+	ESP_SERVER_CLOSED_CB,
+	ESP_CLIENT_DISCONNECTED_CB,
 	ESP_CLIENT_CONNECTED_CB,
 	ESP_TEST_CB,
 	ESP_WIFI_IS_CONNECTED_CB,
@@ -151,6 +164,7 @@ public:
 	void callHandler();
 	void start();
 	void stop();
+	bool isStatusOk();
 
 private:
 	void Test();
@@ -165,14 +179,31 @@ private:
 	void OpenTCPServer();
 	void CloseTCPServer();
 	void GetWifiConnectionStatus();
+	void ClearBuff();
+
+	void HandleStatusOK();
+	void HandleStatusERROR();
+	void HandleClientDisconnection(char *ptr);
+	void HandleClientConnection(char *ptr);
+	void HandleServerDisconnection();
+	void HandleDataReception(char* ptr);
 
 	ESPGetIPCb_t ESPGetIPCallback;
+
 	ESPWifiConnectionCompletedCb_t ESPWifiConnectionCompletedCallback;
 	ESPWifiDisconnectionCompletedCb_t ESPWifiDisconnectionCompletedCallback;
+
 	ESPDataReceivedEventCb_t ESPDataReceivedEventCallback;
+
 	ESPConnectionClosedCb_t ESPConnectionClosedCallback;
 	ESPConnectionOpenedCb_t ESPConnectionOpenedCallback;
+	ESPServerDisconnectedCb_t ESPServerDisconnectedCallback;
+
+	ESPServerOpenedCb_t ESPServerOpenedCallback;
+	ESPServerClosedCb_t ESPServerClosedCallback;
 	ESPClientConnectedCb_t ESPClientConnectedCallback;
+	ESPClientDisonnectedCb_t ESPClientDisonnectedCallback;
+
 	ESPTestCb_t ESPTestCallback;
 	ESPWifiisConnectedCb_t ESPWifiisConnectedCallback;
 
@@ -184,7 +215,7 @@ private:
 	ESPProtocol_t protocol = TCP;
 	ESPData* toSend;
 	bool flag = false;
-	bool test = false;
+	bool statusOk = false;
 };
 
 }
