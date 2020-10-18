@@ -100,14 +100,13 @@ typedef std::function<void()>ESPWifiDisconnectionCompletedCb_t;
 
 typedef std::function<void(char*,int)> ESPDataReceivedEventCb_t;
 
-typedef std::function<void()> ESPConnectionClosedCb_t;
-typedef std::function<void()> ESPConnectionOpenedCb_t;
-typedef std::function<void()> ESPServerDisconnectedCb_t;
+typedef std::function<void()> ESPConnectedToTCPServerCb_t;
+typedef std::function<void()> ESPDisconnectedFromTCPServerCb_t;
 
-typedef std::function<void()> ESPServerOpenedCb_t;
-typedef std::function<void()> ESPServerClosedCb_t;
-typedef std::function<void(int)> ESPClientConnectedCb_t;
-typedef std::function<void(int)> ESPClientDisonnectedCb_t;
+typedef std::function<void()> ESPTCPServerOpenedCb_t;
+typedef std::function<void()> ESPTCPServerClosedCb_t;
+typedef std::function<void(int)> ESPTCPClientConnectedCb_t;
+typedef std::function<void(int)> ESPTCPClientDisonnectedCb_t;
 
 typedef std::function<void()> ESPTestCb_t;
 typedef std::function<void(bool)> ESPWifiisConnectedCb_t;
@@ -120,16 +119,20 @@ typedef enum {
 
 typedef enum {
 	ESP_GET_IP_CB,
+
 	ESP_WIFI_CONNECTION_COMPLETE_CB,
 	ESP_WIFI_DISCONNECTION_COMPLETE_CB,
+
 	ESP_DATA_RECEIVED_CB,
-	ESP_CONNECTION_OPENED_CB,
-	ESP_CONNECTION_CLOSED_CB,
-	ESP_SERVER_DISCONNECTED_CB,
+
+	ESP_CONNECTED_TO_TCP_SERVER_CB,
+	ESP_DISCONNECTED_FROM_TCP_SERVER_CB,
+
 	ESP_SERVER_OPENED_CB,
 	ESP_SERVER_CLOSED_CB,
-	ESP_CLIENT_DISCONNECTED_CB,
-	ESP_CLIENT_CONNECTED_CB,
+	ESP_TCP_CLIENT_CONNECTED_CB,
+	ESP_TCP_CLIENT_DISCONNECTED_CB,
+
 	ESP_TEST_CB,
 	ESP_WIFI_IS_CONNECTED_CB,
 }ESPCb_t;
@@ -137,15 +140,22 @@ typedef enum {
 typedef enum {
 	ESP_TEST,
 	ESP_SET_MODE,
-	ESP_CONNECT_TCP,
+
 	ESP_CONNECT_WIFI,
-	ESP_DISCONNECT_TCP,
 	ESP_DISCONNECT_WIFI,
-	ESP_GET_IP,
-	ESP_DISABLE_MULTIPLE_CONN,
-	ESP_ENABLE_MULTIPLE_CONN,
+
+	ESP_CONNECT_TO_TCP_SERVER,
+	ESP_DISCONNECT_FROM_TCP_SERVER,
+
 	ESP_OPEN_TCP_SERVER,
 	ESP_CLOSE_TCP_SERVER,
+	ESP_DISCONNECT_FROM_TCP_CLIENT,
+
+	ESP_GET_IP,
+
+	ESP_DISABLE_MULTIPLE_CONN,
+	ESP_ENABLE_MULTIPLE_CONN,
+
 	ESP_GET_WIFI_STATUS,
 }ESPCmd_t;
 
@@ -169,15 +179,17 @@ public:
 private:
 	void Test();
 	void SetMode();
-	void ConnectTCP();
+	void ConnectToTCPServer();
 	void ConnectWifi();
-	void DisConnectTCP();
 	void DisConnectWifi();
+	void DisConnectFromTCPServer();
+	void DisConnectFromTCPClient();
+	void OpenTCPServer();
+	void CloseTCPServer();
+
 	void GetIP();
 	void DisableMultipleConnections();
 	void EnableMultipleConnections();
-	void OpenTCPServer();
-	void CloseTCPServer();
 	void GetWifiConnectionStatus();
 	void ClearBuff();
 
@@ -195,14 +207,13 @@ private:
 
 	ESPDataReceivedEventCb_t ESPDataReceivedEventCallback;
 
-	ESPConnectionClosedCb_t ESPConnectionClosedCallback;
-	ESPConnectionOpenedCb_t ESPConnectionOpenedCallback;
-	ESPServerDisconnectedCb_t ESPServerDisconnectedCallback;
+	ESPConnectedToTCPServerCb_t ESPConnectedToTCPServerCallback;
+	ESPDisconnectedFromTCPServerCb_t ESPDisconnectedFromTCPServerCallback;
 
-	ESPServerOpenedCb_t ESPServerOpenedCallback;
-	ESPServerClosedCb_t ESPServerClosedCallback;
-	ESPClientConnectedCb_t ESPClientConnectedCallback;
-	ESPClientDisonnectedCb_t ESPClientDisonnectedCallback;
+	ESPTCPServerOpenedCb_t ESPTCPServerOpenedCallback;
+	ESPTCPServerClosedCb_t ESPTCPServerClosedCallback;
+	ESPTCPClientConnectedCb_t ESPTCPClientConnectedCallback;
+	ESPTCPClientDisonnectedCb_t ESPTCPClientDisonnectedCallback;
 
 	ESPTestCb_t ESPTestCallback;
 	ESPWifiisConnectedCb_t ESPWifiisConnectedCallback;
