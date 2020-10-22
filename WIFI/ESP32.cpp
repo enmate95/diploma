@@ -360,12 +360,12 @@ void WifiDevice::ESP32::GetIP() {
 }
 
 void WifiDevice::ESP32::EnableMultipleConnections() {
-	//AT+CIPMUX
+	//AT+CIPMUX=1
 	serial.send((uint8_t*)"AT+CIPMUX=1\r\n",13);
 }
 
 void WifiDevice::ESP32::DisableMultipleConnections() {
-	//AT+CIPMUX
+	//AT+CIPMUX=0
 	serial.send((uint8_t*)"AT+CIPMUX=0\r\n",13);
 }
 

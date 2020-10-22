@@ -1,4 +1,5 @@
 "BlueNRG-MS/Target/hci_tl_interface.o"
+"Cellular/SIM7000.o"
 "Core/Src/custom_bus.o"
 "Core/Src/dma.o"
 "Core/Src/freertos.o"
@@ -53,6 +54,7 @@
 "Middlewares/Third_Party/FreeRTOS/Source/timers.o"
 "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o"
 "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o"
+"RadioDev/CellurarTest.o"
 "RadioDev/ESPTests.o"
 "RadioDev/LoRaTests.o"
 "Serial/uartDevice.o"
