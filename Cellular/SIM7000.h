@@ -16,16 +16,17 @@ typedef enum {
 
 typedef enum {
 	TCP,
-	UDP,
 	HTTP,
- }SIM7000Protocol_t;
-
-typedef enum {
-	TCP_CLIENT,
-	TCP_SERVER,
-	HTTP_CLIENT,
+	UDP,
  }SIM7000Role_t;
 
+ typedef enum {
+	 TCP_CLIENT,
+	 TCP_SERVER,
+	 UDP_NODE,
+	 HTTP_GET,
+	 HTTP_POST,
+ }SIM7000Protocol_t;
 
  class  SIM7000Params{
  public:
@@ -82,12 +83,12 @@ typedef enum {
  	void setLength(int length) {this->length = length;}
  	int getLength() {return length;}
  private:
- 	char raw[200] = "";
+ 	char raw[500] = "";
  	int length = 0;
  };
 
  typedef std::function<void(char*)> SIM7000GetIPCb_t;
- typedef std::function<void(char*,int)> SIM7000TCPDataReceivedEventCb_t;
+ typedef std::function<void(char*,int)> SIM7000TCP_UDP_DataReceivedEventCb_t;
  typedef std::function<void()> SIM7000POSTSessionDoneCb_t;
  typedef std::function<void(char*,int)> SIM7000GETResultCb_t;
 
@@ -99,7 +100,6 @@ typedef enum {
  typedef std::function<void(int)> SIM7000TCPClientConnectedCb_t;
  typedef std::function<void(int)> SIM7000TCPClientDisconnectedCb_t;
 
- typedef std::function<void()> SIM7000TestCb_t;
  typedef std::function<void(bool)> SIM7000IsGPRSConnectedCb_t;
 
 
@@ -107,6 +107,7 @@ typedef enum {
  	SIM7000_DEVICE_PARAMS,
 	SIM7000_ROLE,
 	SIM7000_PROTOCOL,
+	SIM7000_CLIENT,
  }ESPParam_t;
 
  typedef enum {
@@ -124,12 +125,10 @@ typedef enum {
 	SIM7000_TCP_CLIENT_CONNECTED_CB,
 	SIM7000_TCP_CLIENT_DISCONNECTED_CB,
 
-	SIM7000_TEST_CB,
 	SIM7000_GPRS_IS_CONNECTED_CB,
  }ESPCb_t;
 
  typedef enum {
-	SIM7000_TEST,
 	SIM7000_SET_MODE,
 	SIM7000_GET_IP,
 	SIM7000_DISABLE_MULTIPLE_CONN,
@@ -148,14 +147,10 @@ typedef enum {
 	SIM7000_INIT,
 	SIM7000_SET_CID,
 	SIM7000_SET_URL,
-	SIM7000_START_GET,
-	SIM7000_READ_GET,
-	SIM7000_START_POST,
-	SIM7000_SET_POST_DATA,
 	SIM7000_HTTP_TERMINATE,
  }SIM7000Cmd_t;
 
-class SIM7000  {
+class SIM7000 : public RadioDevice  {
 public:
 	 SIM7000(UartDMA & serial):serial(serial) {}
 	~SIM7000()=default;
@@ -172,7 +167,9 @@ public:
 	void stop();
 	bool isStatusOk();
 private:
-
+	void GetGPRSState();
+	void SetMode();
+	void ClearBuff();
 	void GetIP();
 	void EnableMultipleConnection();
 	void DisableMultipleConnection();
@@ -197,8 +194,16 @@ private:
 	void HTTPStartPOSTSession();
 	void HTTPTerminate();
 
+	void HandleStatusOK();
+	void HandleStatusERROR();
+	void HandleClientDisconnection(char *ptr);
+	void HandleClientConnection(char *ptr);
+	void HandleServerDisconnection();
+	void HandleDataReception(char* ptr);
+	void HandleGetIP(char* ptr);
+
 	SIM7000GetIPCb_t SIM7000GetIPCallback;
-	SIM7000TCPDataReceivedEventCb_t SIM7000TCPDataReceivedEventCallback;
+	SIM7000TCP_UDP_DataReceivedEventCb_t SIM7000TCP_UDP_DataReceivedEventCallback;
 	SIM7000GETResultCb_t SIM7000GETResultCallback;
 	SIM7000POSTSessionDoneCb_t SIM7000POSTSessionDoneCallback;
 
@@ -210,18 +215,17 @@ private:
 	SIM7000TCPClientConnectedCb_t SIM7000TCPClientConnectedCallback;
 	SIM7000TCPClientDisconnectedCb_t SIM7000TCPClientDisconnectedCallback;
 
-	SIM7000TestCb_t SIM7000TestCallback;
-	SIM7000IsGPRSConnectedCb_t SIM7000IsGPRSConnectedCallback;
-
 private:
    UartDMA & serial;
    UartData_t raw;
    SIM7000Params *params;
    SIM7000Mode_t mode = Automatic;
-   SIM7000Role_t role = HTTP_CLIENT;
-   SIM7000Protocol_t protocol = HTTP;
+   SIM7000Role_t role = HTTP;
+   SIM7000Protocol_t protocol = HTTP_GET;
    SIM7000Data *toSend;
    int currentClient = 0;
+   bool flag = false;
+   bool statusOk = false;
  };
 
 }

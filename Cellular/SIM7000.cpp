@@ -7,38 +7,40 @@ void Cellular::SIM7000::init(const Container & data) {
 
 void Cellular::SIM7000::setParameter(int param, const Container & value) {
 	switch(param) {
-		case SIM7000_DEVICE_PARAMS: {
+		case SIM7000_DEVICE_PARAMS:
 			params = &DataManager<Cellular::SIM7000Params>::convertFromContainer(value);
-		}
 		break;
 
-		case SIM7000_ROLE: {
+		case SIM7000_ROLE:
 			role = DataManager<Cellular::SIM7000Role_t>::convertFromContainer(value);
-		}
 		break;
 
-		case SIM7000_PROTOCOL: {
+		case SIM7000_CLIENT:
+			currentClient = DataManager<int>::convertFromContainer(value);
+		break;
+
+		case SIM7000_PROTOCOL:
 			protocol = DataManager<Cellular::SIM7000Protocol_t>::convertFromContainer(value);
-		}
 		break;
 	}
 }
 
 Container Cellular::SIM7000::getParameter(int param) {
 	switch(param) {
-		case SIM7000_DEVICE_PARAMS: {
+		case SIM7000_DEVICE_PARAMS:
 			return DataManager<Cellular::SIM7000Params>::convertFromData(*params);
-		}
 		break;
 
-		case SIM7000_ROLE: {
+		case SIM7000_ROLE:
 			return DataManager<Cellular::SIM7000Role_t>::convertFromData(role);
-		}
 		break;
 
-		case SIM7000_PROTOCOL: {
+		case SIM7000_CLIENT:
+			return DataManager<int>::convertFromData(currentClient);
+		break;
+
+		case SIM7000_PROTOCOL:
 			return DataManager<Cellular::SIM7000Protocol_t>::convertFromData(protocol);
-		}
 		break;
 	}
 }
@@ -95,11 +97,6 @@ void Cellular::SIM7000::setCallback(int type, const Container & value) {
 		}
 		break;
 
-		case SIM7000_TEST_CB: {
-			SIM7000TestCallback = DataManager<Cellular::SIM7000TestCb_t>::convertFromContainer(value);
-		}
-		break;
-
 		case SIM7000_GPRS_IS_CONNECTED_CB: {
 			SIM7000IsGPRSConnectedCallback = DataManager<Cellular::SIM7000IsGPRSConnectedCb_t>::convertFromContainer(value);
 		}
@@ -108,42 +105,309 @@ void Cellular::SIM7000::setCallback(int type, const Container & value) {
 }
 
 void Cellular::SIM7000::process() {
+	if(flag) {
+		serial.copyBuffer(&raw);
+		char* ptr;
 
+		ptr = strstr((char*)raw.data,"ERROR");
+		if(ptr != nullptr) {
+			HandleStatusERROR();
+			return;
+		}
+
+		ptr = strstr((char*)raw.data,"OK");
+		if(ptr != nullptr) {
+			statusOk = true;
+			HandleStatusOK();
+			return;
+		}
+
+		ptr = strstr((char*)raw.data,">");
+		if(ptr != nullptr) {
+			char *data = toSend->getData();
+			serial.send((uint8_t*)data,strlen(data));
+			return;
+		}
+
+		ptr = strstr((char*)raw.data,"+CIFSREX");
+		if(ptr != nullptr) {
+			HandleGetIP(ptr);
+			return;
+		}
+
+		if(protocol == TCP_CLIENT) {
+			ptr = strstr((char*)raw.data,"CLOSED");
+			if(ptr != nullptr) {
+				HandleServerDisconnection();
+				return;
+			}
+			ptr = strstr((char*)raw.data,"+IPD");
+			if(ptr != nullptr) {
+				HandleDataReception(ptr);
+				return;
+			}
+		}
+		else if(protocol == TCP_SERVER) {
+			ptr = strstr((char*)raw.data,",REMOTE");
+			if(ptr != nullptr) {
+				HandleClientConnection(ptr);
+				return;
+			}
+			ptr = strstr((char*)raw.data,",CLOSED");
+			if(ptr != nullptr) {
+				HandleClientDisconnection(ptr);
+				return;
+			}
+
+			ptr = strstr((char*)raw.data,"+RECEIVE");
+			if(ptr != nullptr) {
+				HandleDataReception(ptr);
+				return;
+			}
+		}
+	}
+}
+
+void Cellular::SIM7000::HandleGetIP(char* ptr) {
+	params->setIP(ptr + 9);
+	if(SIM7000GetIPCallback != nullptr)
+		SIM7000GetIPCallback(params->getIP());
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+void Cellular::SIM7000::HandleStatusERROR() {
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+void Cellular::SIM7000::HandleClientDisconnection(char* ptr) {
+	if(SIM7000TCPClientDisconnectedCallback != nullptr)
+		SIM7000TCPClientDisconnectedCallback(atoi(ptr--));
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+void Cellular::SIM7000::HandleClientConnection(char* ptr) {
+	if(SIM7000TCPClientConnectedCallback != nullptr)
+		SIM7000TCPClientConnectedCallback(atoi(ptr--));
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+void Cellular::SIM7000::HandleDataReception(char* ptr) {
+	int length = atoi(ptr + 5);
+	while(*ptr != ',') {
+		ptr++;
+	}
+	ptr++;
+	if(SIM7000TCP_UDP_DataReceivedEventCallback != nullptr)
+		SIM7000TCP_UDP_DataReceivedEventCallback(ptr,length);
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+}
+
+void Cellular::SIM7000::HandleServerDisconnection() {
+	if(SIM7000DisconnectedFromTCPServerCallback != nullptr)
+		SIM7000DisconnectedFromTCPServerCallback();
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
+}
+
+void Cellular::SIM7000::HandleStatusOK()  {
+	if(strstr((char*)raw.data,"CONNECT") != nullptr) {
+		if(SIM7000ConnectedToTCPServerCallback != nullptr)
+			SIM7000ConnectedToTCPServerCallback();
+	}
+	else if(strstr((char*)raw.data,"CLOSE") != nullptr) {
+		if(SIM7000DisconnectedFromTCPServerCallback != nullptr)
+			SIM7000DisconnectedFromTCPServerCallback();
+	}
+
+	serial.stopDMA();
+	serial.clearBuffer();
+	serial.startDMA();
+	ClearBuff();
+	flag = false;
+	busy = false;
 }
 
 bool Cellular::SIM7000::send(const Container & data) {
+	toSend = &DataManager<SIM7000Data>::convertFromContainer(data);
+	busy = true;
+	char send[30] = "AT+CIPSEND=";
+	char sizestr[10] = "";
+	int size = toSend->getLength();
+	char client[10] ="";
+	sprintf(client,"%d",toSend->getClient());
+	sprintf(sizestr,"%d",size);
 
+	switch(role) {
+		case TCP:
+			if(protocol == TCP_CLIENT) {
+				strcat(send,sizestr);
+				strcat(send,"\r\n");
+				serial.send((uint8_t*)send,strlen(send));
+			}
+			else {
+				strcat(send,client);
+				strcat(send,",");
+				strcat(send,sizestr);
+				strcat(send,"\r\n");
+				serial.send((uint8_t*)send,strlen(send));
+			}
+		break;
+
+		case UDP:
+			//TODO:
+		break;
+
+		case HTTP:
+			if(protocol == HTTP_GET) {
+				HTTPStartGETSession();
+			}
+			else {
+				HTTPSetPOSTData();
+			}
+		break;
+	}
 }
 
 bool Cellular::SIM7000::sendCmd(int cmd) {
+	switch(cmd) {
+		case SIM7000_SET_MODE:
+			SetMode();
+		break;
 
+		case SIM7000_GET_IP:
+			GetIP();
+		break;
+
+		case SIM7000_DISABLE_MULTIPLE_CONN:
+			DisableMultipleConnection();
+		break;
+
+		case SIM7000_ENABLE_MULTIPLE_CONN:
+			EnableMultipleConnection();
+		break;
+
+		case SIM7000_CONNECT_TO_TCP_SERVER:
+			TCPConnectServer();
+		break;
+
+		case SIM7000_DISCONNECT_FROM_TCP_SERVER:
+			TCPDisconnectFromServer();
+		break;
+
+		case SIM7000_OPEN_TCP_SERVER:
+			TCPOpenServer();
+		break;
+
+		case SIM7000_CLOSE_TCP_SERVER:
+			TCPCloseServer();
+		break;
+
+		case SIM7000_GET_GPRS_STATUS:
+			GetGPRSState();
+		break;
+
+		case SIM7000_CONFIG_BEARER:
+			HTTPBearerConfigure();
+		break;
+
+		case SIM7000_OPEN_BEARER:
+			HTTPBearerOpen();
+		break;
+
+		case SIM7000_CLOSE_BEARER:
+			HTTPBearerClose();
+		break;
+
+		case SIM7000_INIT:
+			HTTPInit();
+		break;
+
+		case SIM7000_SET_CID:
+			HTTPSetCID();
+		break;
+
+		case SIM7000_SET_URL:
+			HTTPSetURL();
+		break;
+
+		case SIM7000_HTTP_TERMINATE:
+			HTTPTerminate();
+		break;
+	}
 }
 
 void Cellular::SIM7000::callHandler() {
-
+	if(serial.uartHandleFLags()) {
+		if(serial.setLength()) {
+			flag = true;
+		}
+	}
 }
 
 void Cellular::SIM7000::start() {
-
+	serial.send((uint8_t*)"ATE0\r\n",6);
+	HAL_Delay(200);
+	serial.send((uint8_t*)"AT+CIPHEAD=1\r\n",14);
+	HAL_Delay(200);
+	serial.startDMA();
 }
 
 void Cellular::SIM7000::stop() {
+	serial.stopDMA();
+}
 
+void Cellular::SIM7000::ClearBuff() {
+	for(uint32_t i = 0; i < raw.length;i++)
+		raw.data[i] = 0;
+	raw.length = 0;
 }
 
 bool Cellular::SIM7000::isStatusOk() {
-
+	if(statusOk) {
+		statusOk = false;
+		return true;
+	}
+	return false;
 }
 
 void Cellular::SIM7000::GetIP() {
 	//AT+CIFSR
-	serial.send((uint8_t*)"AT+CIFSR\r\n",10);
+	serial.send((uint8_t*)"AT+CIFSREX\r\n",12);
 }
 
 void Cellular::SIM7000::EnableMultipleConnection() {
 	//AT+CIPMUX=1
 	serial.send((uint8_t*)"AT+CIPMUX=1\r\n",13);
 }
+
 void Cellular::SIM7000::DisableMultipleConnection() {
 	//AT+CIPMUX=0
 	serial.send((uint8_t*)"AT+CIPMUX=0\r\n",13);
