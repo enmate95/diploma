@@ -148,7 +148,7 @@ typedef enum {
 	SIM7000_UDP_START,
 	SIM7000_TCP_UDP_CONNECT_NETWORK,
 	SIM7000_TCP_UDP_DISCONNECT_NETWORK,
-	SIM7000_TCP_UDO_START_TASK,
+	SIM7000_TCP_UDP_START_TASK,
 
 	SIM7000_GET_GPRS_STATUS,
 	SIM7000_HTTP_CONFIG_BEARER,
@@ -246,18 +246,12 @@ private:
 	void HTTPStartPOSTSession();
 	void HTTPTerminate();
 
-	void HandleStatusOK();
-	void HandleStatusERROR();
-	void HandleClientDisconnection(char *ptr);
-	void HandleClientConnection(char *ptr);
-	void HandleServerDisconnection();
-	void HandleDataReception(char* ptr);
-	void HandleHTTPPostDone();
-
 	bool IsNumber(char c);
 	void ProcessDone();
 	void HandleHTTP();
-	void HandleTCP_UDP();
+	void HandleTCPClient();
+	void HandleTCPServer();
+	void HandleUDP();
 
 	SIM7000GetIPCb_t SIM7000GetIPCallback;
 	SIM7000TCP_UDP_DataReceivedEventCb_t SIM7000TCP_UDP_DataReceivedEventCallback;
