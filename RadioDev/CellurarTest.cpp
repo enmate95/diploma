@@ -23,18 +23,25 @@ Cellular::SIM7000Params params;
 Cellular::SIM7000Data data;
 
 bool GPRSStatus = false;
+bool IsPinNeeded = false;
 char GETResult[500] = "";
 
 void GetGPRSstateCallback(bool state);
 void GetIPCallback(char* ip);
 void GETSessionCallback(char* res,int length);
+void IsPINCallback(bool isPin);
 
 Cellular::SIM7000IsGPRSConnectedCb_t GPRSStateCb = GetGPRSstateCallback;
 Cellular::SIM7000GetIPCb_t GetIPResultCb = GetIPCallback;
 Cellular::SIM7000GETResultCb_t GETresultCb = GETSessionCallback;
+Cellular::SIM7000IsPINCb_t IsPINCb = IsPINCallback;
 
 void GetGPRSstateCallback(bool state) {
 	GPRSStatus = state;
+}
+
+void IsPINCallback(bool isPin) {
+	IsPinNeeded = isPin;
 }
 
 void GetIPCallback(char* ip) {
@@ -55,6 +62,7 @@ enum class AppState {
 	Run,
 	HTTPInit,
 	HTTPClose,
+	Done,
 };
 
 enum class SubState {
@@ -73,7 +81,7 @@ SubState substate = SubState::BearerConfig;
 extern "C" {
 void StartTask() {
 	device = &sim7;
-	bool simSet = false;
+	bool get = true;
 	params.setAPN("vitamax.internet.vodafone.net");
 	params.setURL("www.sim.com");
 	params.setPIN(7188);
@@ -81,33 +89,44 @@ void StartTask() {
 	device->setCallback(Cellular::SIM7000_GPRS_IS_CONNECTED_CB, DataManager<Cellular::SIM7000IsGPRSConnectedCb_t>::convertFromData(GPRSStateCb));
 	device->setCallback(Cellular::SIM7000_HTTP_GET_RECEIVED_CB, DataManager<Cellular::SIM7000GETResultCb_t>::convertFromData(GETresultCb));
 	device->setCallback(Cellular::SIM7000_GET_IP_CB, DataManager<Cellular::SIM7000GetIPCb_t>::convertFromData(GetIPResultCb));
+	device->setCallback(Cellular::SIM7000_IS_PIN_CB, DataManager<Cellular::SIM7000IsPINCb_t>::convertFromData(IsPINCb));
 	device->start();
 
+
 	for(;;) {
-		if(!device->isBusy()) {
-			if(simSet) {
-				break;
-			}
-			else {
-				device->sendCmd(Cellular::SIM7000_SET_PIN);
-				simSet = true;
-			}
+		device->sendCmd(Cellular::SIM7000_DISABLE_ECHO);
+		osDelay(500);
+		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	device->sendCmd(Cellular::SIM7000_IS_PIN_NEEDED);
+	while(device->isBusy()) {
+		device->process();
+		osDelay(100);
+	}
+
+	if(IsPinNeeded) {
+		device->sendCmd(Cellular::SIM7000_SET_PIN);
+		while(device->isBusy()) {
+			device->process();
+			osDelay(100);
 		}
+	}
+
+	device->sendCmd(Cellular::SIM7000_SET_RX_DATA_FORMAT);
+	while(device->isBusy()) {
 		device->process();
 		osDelay(100);
 	}
 
 	for(;;) {
-		if(!device->isBusy()) {
-			if(GPRSStatus) {
-				break;
-			}
-			else {
-				device->sendCmd(Cellular::SIM7000_GET_GPRS_STATUS);
-			}
-		}
-		device->process();
+		device->sendCmd(Cellular::SIM7000_GET_GPRS_STATUS);
 		osDelay(500);
+		device->process();
+		if(GPRSStatus)
+			break;
 	}
 
 	for(;;) {
@@ -147,7 +166,22 @@ void StartTask() {
 				break;
 
 				case AppState::Run:
-					device->send(DataManager<Cellular::SIM7000Data>::convertFromData(data));
+					if(get) {
+						get = false;
+						device->send(DataManager<Cellular::SIM7000Data>::convertFromData(data));
+					}
+					else {
+						Cellular::SIM7000Protocol_t newProt = Cellular::HTTP_POST;
+						data.setData("asd");
+						data.setLength(3);
+						device->setParameter(Cellular::SIM7000_PROTOCOL, DataManager<Cellular::SIM7000Protocol_t>::convertFromData(newProt));
+						device->send(DataManager<Cellular::SIM7000Data>::convertFromData(data));
+						state = AppState::HTTPClose;
+					}
+				break;
+
+				case AppState::Done:
+					HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 				break;
 
 				case AppState::HTTPClose:
@@ -159,6 +193,7 @@ void StartTask() {
 
 						case SubState::BearerClose:
 							device->sendCmd(Cellular::SIM7000_HTTP_CLOSE_BEARER);
+							state = AppState::Done;
 						break;
 
 						default:

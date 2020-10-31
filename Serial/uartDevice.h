@@ -5,7 +5,7 @@
 #include <utility>
 #include "stm32f4xx_hal.h"
 
-#define RAW_SIZE 250
+#define RAW_SIZE 500
 
 typedef struct {
 	uint32_t length = 0;

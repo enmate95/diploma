@@ -78,8 +78,8 @@ diplomaProject.bin \
 all: diplomaProject.elf secondary-outputs
 
 # Tool invocations
-diplomaProject.elf: $(OBJS) $(USER_OBJS) C:\Users\horny\Documents\bme\diploma2\repo\STM32F405RGTX_FLASH.ld
-	arm-none-eabi-g++ -o "diplomaProject.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\horny\Documents\bme\diploma2\repo\STM32F405RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="diplomaProject.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+diplomaProject.elf: $(OBJS) $(USER_OBJS) C:\Users\tanulo\Desktop\MateDiploma\STM32F405RGTX_FLASH.ld
+	arm-none-eabi-g++ -o "diplomaProject.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\tanulo\Desktop\MateDiploma\STM32F405RGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="diplomaProject.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

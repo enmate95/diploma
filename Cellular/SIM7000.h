@@ -101,6 +101,7 @@ typedef enum {
  typedef std::function<void(int)> SIM7000TCPClientDisconnectedCb_t;
 
  typedef std::function<void(bool)> SIM7000IsGPRSConnectedCb_t;
+ typedef std::function<void(bool)> SIM7000IsPINCb_t;
 
 
  typedef enum {
@@ -108,10 +109,11 @@ typedef enum {
 	SIM7000_ROLE,
 	SIM7000_PROTOCOL,
 	SIM7000_CLIENT,
- }ESPParam_t;
+ }SIM7000Param_t;
 
  typedef enum {
  	SIM7000_GET_IP_CB,
+	SIM7000_IS_PIN_CB,
 	SIM7000_TCP_UDP_DATA_RECEIVED_CB,
 
 	SIM7000_HTTP_GET_RECEIVED_CB,
@@ -126,14 +128,17 @@ typedef enum {
 	SIM7000_TCP_CLIENT_DISCONNECTED_CB,
 
 	SIM7000_GPRS_IS_CONNECTED_CB,
- }ESPCb_t;
+ }SIM7000Cb_t;
 
  typedef enum {
 	SIM7000_SET_PIN,
+	SIM7000_IS_PIN_NEEDED,
 	SIM7000_SET_MODE,
 	SIM7000_GET_IP,
 	SIM7000_DISABLE_MULTIPLE_CONN,
 	SIM7000_ENABLE_MULTIPLE_CONN,
+	SIM7000_DISABLE_ECHO,
+	SIM7000_SET_RX_DATA_FORMAT,
 
 	SIM7000_TCP_CONNECT_TO_SERVER,
 	SIM7000_TCP_DISCONNECT_FROM_SERVER,
@@ -155,6 +160,44 @@ typedef enum {
 	SIM7000_HTTP_TERMINATE,
  }SIM7000Cmd_t;
 
+ enum class SIM7000CommandState {
+	IDLE,
+	SET_PIN,
+	IS_PIN,
+	GET_GPRS_STATE,
+	SET_MODE,
+	START_UDP,
+	GET_IP,
+	DISABLE_ECHO,
+	SET_RX_DATA_FORMAT,
+
+	ENABLE_MULTIPLE_CONN,
+	DISABLE_MULTIPLE_CONN,
+	TCP_UDP_SEND,
+	TCP_CONNECT_SERVER,
+	TCP_DISCONNECT_SERVER,
+	TCP_UDP_DISCONNECT_NETWORK,
+	TCP_UDP_START_TASK,
+	TCP_UDP_CONNECT_NETWORK,
+	TCP_OPEN_SERVER,
+	TCP_CLOSE_SERVER,
+	TCP_DISCONNECT_FROM_CLIENT,
+	UDP_START,
+
+	HTTP_BEARER_CONFIG,
+	HTTP_BEARER_OPEN,
+	HTTP_BEARER_CLOSE,
+	HTTP_START,
+	HTTP_SET_CID,
+	HTTP_SET_URL,
+	HTTP_START_GET,
+	HTTP_READ_GET,
+	HTTP_SET_POST_DATA,
+	HTTP_START_POST,
+	HTTP_POST_DONE,
+	HTTP_TERMINATE,
+ };
+
 class SIM7000 : public RadioDevice  {
 public:
 	 SIM7000(UartDMA & serial):serial(serial) {}
@@ -172,6 +215,7 @@ public:
 	void stop();
 private:
 	void SetPIN();
+	void GetPIN();
 	void GetGPRSState();
 	void SetMode();
 	void UDPStart();
@@ -179,6 +223,8 @@ private:
 	void GetIP();
 	void EnableMultipleConnection();
 	void DisableMultipleConnection();
+	void SetRxDataFormat();
+	void DisableEcho();
 
 	void TCPConnectServer();
 	void TCPDisconnectFromServer();
@@ -226,6 +272,7 @@ private:
 	SIM7000TCPClientConnectedCb_t SIM7000TCPClientConnectedCallback;
 	SIM7000TCPClientDisconnectedCb_t SIM7000TCPClientDisconnectedCallback;
 	SIM7000IsGPRSConnectedCb_t SIM7000IsGPRSConnectedCallback;
+	SIM7000IsPINCb_t SIM7000IsPINCallback;
 
 private:
    UartDMA & serial;
@@ -235,6 +282,7 @@ private:
    SIM7000Role_t role = HTTP;
    SIM7000Protocol_t protocol = HTTP_GET;
    SIM7000Data *toSend;
+   SIM7000CommandState state = SIM7000CommandState::IDLE;
    int currentClient = 0;
    bool flag = false;
    bool action = false;
