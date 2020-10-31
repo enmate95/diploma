@@ -50,6 +50,7 @@
 /* USER CODE BEGIN PFP */
 void LoRaUartITHandler();
 void ESPUartITHandler();
+void CellularITHandler();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -205,6 +206,10 @@ void USART1_IRQHandler(void)
   /* USER CODE BEGIN USART1_IRQn 1 */
 #if ESP_TEST
   ESPUartITHandler();
+#endif
+
+#if SIM7000_TEST
+  CellularITHandler();
 #endif
   /* USER CODE END USART1_IRQn 1 */
 }

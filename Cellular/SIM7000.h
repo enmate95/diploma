@@ -111,7 +111,7 @@ typedef enum {
  }ESPParam_t;
 
  typedef enum {
- 	SIM7000_TCP_UDP_GET_IP_CB,
+ 	SIM7000_GET_IP_CB,
 	SIM7000_TCP_UDP_DATA_RECEIVED_CB,
 
 	SIM7000_HTTP_GET_RECEIVED_CB,
@@ -129,6 +129,7 @@ typedef enum {
  }ESPCb_t;
 
  typedef enum {
+	SIM7000_SET_PIN,
 	SIM7000_SET_MODE,
 	SIM7000_GET_IP,
 	SIM7000_DISABLE_MULTIPLE_CONN,
@@ -169,8 +170,8 @@ public:
 	void callHandler();
 	void start();
 	void stop();
-	bool isStatusOk();
 private:
+	void SetPIN();
 	void GetGPRSState();
 	void SetMode();
 	void UDPStart();
@@ -207,7 +208,10 @@ private:
 	void HandleDataReception(char* ptr);
 	void HandleHTTPPostDone();
 
-	bool IsNumber();
+	bool IsNumber(char c);
+	void ProcessDone();
+	void HandleHTTP();
+	void HandleTCP_UDP();
 
 	SIM7000GetIPCb_t SIM7000GetIPCallback;
 	SIM7000TCP_UDP_DataReceivedEventCb_t SIM7000TCP_UDP_DataReceivedEventCallback;
@@ -233,7 +237,7 @@ private:
    SIM7000Data *toSend;
    int currentClient = 0;
    bool flag = false;
-   bool statusOk = false;
+   bool action = false;
  };
 
 }
