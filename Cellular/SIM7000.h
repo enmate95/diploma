@@ -82,13 +82,18 @@ typedef enum {
 
  	void setLength(int length) {this->length = length;}
  	int getLength() {return length;}
+
+ 	void setClient(int length) {this->client = client;}
+	int getClient() {return client;}
+
  private:
  	char raw[500] = "";
  	int length = 0;
+ 	int client = 0;
  };
 
  typedef std::function<void(char*)> SIM7000GetIPCb_t;
- typedef std::function<void(char*,int)> SIM7000TCP_UDP_DataReceivedEventCb_t;
+ typedef std::function<void(char*,int,int)> SIM7000TCP_UDP_DataReceivedEventCb_t;
  typedef std::function<void()> SIM7000POSTSessionDoneCb_t;
  typedef std::function<void(char*,int)> SIM7000GETResultCb_t;
 
@@ -102,13 +107,12 @@ typedef enum {
 
  typedef std::function<void(bool)> SIM7000IsGPRSConnectedCb_t;
  typedef std::function<void(bool)> SIM7000IsPINCb_t;
-
+ typedef std::function<void(bool)> SIM7000IsStatusOKCb_t;
 
  typedef enum {
  	SIM7000_DEVICE_PARAMS,
 	SIM7000_ROLE,
 	SIM7000_PROTOCOL,
-	SIM7000_CLIENT,
  }SIM7000Param_t;
 
  typedef enum {
@@ -128,6 +132,7 @@ typedef enum {
 	SIM7000_TCP_CLIENT_DISCONNECTED_CB,
 
 	SIM7000_GPRS_IS_CONNECTED_CB,
+	SIM7000_IS_STATUS_OK_CB,
  }SIM7000Cb_t;
 
  typedef enum {
@@ -267,6 +272,7 @@ private:
 	SIM7000TCPClientDisconnectedCb_t SIM7000TCPClientDisconnectedCallback;
 	SIM7000IsGPRSConnectedCb_t SIM7000IsGPRSConnectedCallback;
 	SIM7000IsPINCb_t SIM7000IsPINCallback;
+	SIM7000IsStatusOKCb_t SIM7000IsStatusOKCallback;
 
 private:
    UartDMA & serial;
@@ -277,7 +283,6 @@ private:
    SIM7000Protocol_t protocol = HTTP_GET;
    SIM7000Data *toSend;
    SIM7000CommandState state = SIM7000CommandState::IDLE;
-   int currentClient = 0;
    bool flag = false;
    bool action = false;
  };

@@ -16,6 +16,6 @@
 #define SIM7000_TEST 1
 #define HTTP_MODE 0
 #define TCP_CLIENT_MODE 1
-#define UDP_MODE
+#define UDP_MODE 0
 
 #endif /* DEFINES_H_ */

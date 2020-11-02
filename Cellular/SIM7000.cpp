@@ -15,10 +15,6 @@ void Cellular::SIM7000::setParameter(int param, const Container & value) {
 			role = DataManager<Cellular::SIM7000Role_t>::convertFromContainer(value);
 		break;
 
-		case SIM7000_CLIENT:
-			currentClient = DataManager<int>::convertFromContainer(value);
-		break;
-
 		case SIM7000_PROTOCOL:
 			protocol = DataManager<Cellular::SIM7000Protocol_t>::convertFromContainer(value);
 		break;
@@ -35,10 +31,6 @@ Container Cellular::SIM7000::getParameter(int param) {
 			return DataManager<Cellular::SIM7000Role_t>::convertFromData(role);
 		break;
 
-		case SIM7000_CLIENT:
-			return DataManager<int>::convertFromData(currentClient);
-		break;
-
 		case SIM7000_PROTOCOL:
 			return DataManager<Cellular::SIM7000Protocol_t>::convertFromData(protocol);
 		break;
@@ -49,6 +41,11 @@ void Cellular::SIM7000::setCallback(int type, const Container & value) {
 	switch(type) {
 		case SIM7000_GET_IP_CB: {
 			SIM7000GetIPCallback = DataManager<Cellular::SIM7000GetIPCb_t>::convertFromContainer(value);
+		}
+		break;
+
+		case SIM7000_IS_STATUS_OK_CB: {
+			SIM7000IsStatusOKCallback = DataManager<Cellular::SIM7000IsStatusOKCb_t>::convertFromContainer(value);
 		}
 		break;
 
@@ -145,12 +142,158 @@ void Cellular::SIM7000::process() {
 
 void Cellular::SIM7000::HandleTCPClient() {
 	char* ptr;
+	static bool sent = false;
 	switch(state) {
 		case SIM7000CommandState::SET_PIN:
 			if(strstr((char*)raw.data,"READY") != nullptr) {
 				ProcessDone();
 				state = SIM7000CommandState::IDLE;
 			}
+		break;
+
+		case SIM7000CommandState::TCP_UDP_CONNECT_NETWORK:
+			GetIP();
+			state = SIM7000CommandState::GET_IP;
+		break;
+
+		case SIM7000CommandState::IS_PIN:
+			if(strstr((char*)raw.data,"READY") != nullptr) {
+				if(SIM7000IsPINCallback != nullptr)
+					SIM7000IsPINCallback(false);
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+			else if(strstr((char*)raw.data,"SIM PIN") != nullptr){
+				if(SIM7000IsPINCallback != nullptr)
+					SIM7000IsPINCallback(true);
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+
+		case SIM7000CommandState::GET_GPRS_STATE:
+			ptr = strstr((char*)raw.data,"+CGATT:");
+			if(ptr != nullptr) {
+				ptr += 8;
+				int nwState = atoi(ptr);
+				if(nwState) {
+					if(SIM7000IsGPRSConnectedCallback != nullptr)
+						SIM7000IsGPRSConnectedCallback(true);
+				}
+				else {
+					if(SIM7000IsGPRSConnectedCallback != nullptr)
+						SIM7000IsGPRSConnectedCallback(false);
+				}
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+
+		case SIM7000CommandState::GET_IP:
+			ptr = strstr((char*)raw.data,"+CIFSREX");
+			if(ptr != nullptr) {
+				ptr += 10;
+				char ip[20];
+				char* start = ptr;
+				int ipLength = 0;
+				while((*ptr == '.') || (IsNumber(*ptr))) {
+					ptr++;
+					ipLength++;
+				}
+				memcpy(ip,start,ipLength);
+				params->setIP(ip);
+				if(SIM7000GetIPCallback != nullptr)
+					SIM7000GetIPCallback(params->getIP());
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+
+		case SIM7000CommandState::DISABLE_ECHO:
+			ProcessDone();
+			state = SIM7000CommandState::IDLE;
+		break;
+
+		case SIM7000CommandState::TCP_UDP_SEND:
+			if(strstr((char*)raw.data,"SEND OK") != nullptr){
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+				sent = false;
+			}
+			else if((strstr((char*)raw.data,">") != nullptr) && (!sent)) {
+				serial.send((uint8_t*)toSend->getData(),toSend->getLength());
+				sent = true;
+			}
+		break;
+
+		case SIM7000CommandState::TCP_CONNECT_SERVER:
+			if(strstr((char*)raw.data,"CONNECT") != nullptr) {
+				if(SIM7000ConnectedToTCPServerCallback != nullptr)
+					SIM7000ConnectedToTCPServerCallback();
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+
+		case SIM7000CommandState::TCP_DISCONNECT_SERVER:
+			if(strstr((char*)raw.data,"CLOSE") != nullptr) {
+				if(SIM7000DisconnectedFromTCPServerCallback != nullptr)
+					SIM7000DisconnectedFromTCPServerCallback();
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+
+		case SIM7000CommandState::IDLE:
+			ptr = strstr((char*)raw.data,"CLOSED");
+			if(ptr != nullptr) {
+				if(SIM7000DisconnectedFromTCPServerCallback != nullptr)
+					SIM7000DisconnectedFromTCPServerCallback();
+			}
+			ptr = strstr((char*)raw.data,"+IPD");
+			if(ptr != nullptr) {
+				int length = atoi(ptr + 5);
+				while(*ptr != ',') {
+					ptr++;
+				}
+				ptr++;
+				if(SIM7000TCP_UDP_DataReceivedEventCallback != nullptr)
+					SIM7000TCP_UDP_DataReceivedEventCallback(ptr,length,0);
+			}
+			ProcessDone();
+			state = SIM7000CommandState::IDLE;
+		break;
+
+		default:
+			if(strstr((char*)raw.data,"OK") != nullptr) {
+				if(SIM7000IsStatusOKCallback != nullptr)
+					SIM7000IsStatusOKCallback(true);
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+			else if(strstr((char*)raw.data,"ERROR") != nullptr){
+				if(SIM7000IsStatusOKCallback != nullptr)
+					SIM7000IsStatusOKCallback(false);
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+	}
+}
+
+void Cellular::SIM7000::HandleTCPServer() {
+	char* ptr;
+	switch(state) {
+		case SIM7000CommandState::SET_PIN:
+			if(strstr((char*)raw.data,"READY") != nullptr) {
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
+
+		case SIM7000CommandState::TCP_UDP_CONNECT_NETWORK:
+			GetIP();
+			state = SIM7000CommandState::GET_IP;
 		break;
 
 		case SIM7000CommandState::IS_PIN:
@@ -214,58 +357,71 @@ void Cellular::SIM7000::HandleTCPClient() {
 		case SIM7000CommandState::TCP_UDP_SEND:
 			if(strstr((char*)raw.data,">") != nullptr) {
 				serial.send((uint8_t*)toSend->getData(),toSend->getLength());
+				state = SIM7000CommandState::IDLE;
 			}
 		break;
 
-		case SIM7000CommandState::TCP_CONNECT_SERVER:
-			if(strstr((char*)raw.data,"CONNECT") != nullptr) {
-				if(SIM7000ConnectedToTCPServerCallback != nullptr)
-					SIM7000ConnectedToTCPServerCallback();
+		case SIM7000CommandState::TCP_OPEN_SERVER:
+			if(strstr((char*)raw.data,"SERVER OK") != nullptr) {
+				if(SIM7000TCPServerOpenedCallback != nullptr)
+					SIM7000TCPServerOpenedCallback();
 				ProcessDone();
 				state = SIM7000CommandState::IDLE;
 			}
 		break;
 
-		case SIM7000CommandState::TCP_DISCONNECT_SERVER:
-			if(strstr((char*)raw.data,"CLOSE") != nullptr) {
-				if(SIM7000DisconnectedFromTCPServerCallback != nullptr)
-					SIM7000DisconnectedFromTCPServerCallback();
+		case SIM7000CommandState::TCP_CLOSE_SERVER:
+			if(strstr((char*)raw.data,"SERVER CLOSE") != nullptr) {
+				if(SIM7000TCPServerClosedCallback != nullptr)
+					SIM7000TCPServerClosedCallback();
 				ProcessDone();
 				state = SIM7000CommandState::IDLE;
 			}
 		break;
 
 		case SIM7000CommandState::IDLE:
-			ptr = strstr((char*)raw.data,"CLOSED");
+			ptr = strstr((char*)raw.data,",REMOTE");
 			if(ptr != nullptr) {
-				if(SIM7000DisconnectedFromTCPServerCallback != nullptr)
-					SIM7000DisconnectedFromTCPServerCallback();
+				if(SIM7000TCPClientConnectedCallback != nullptr)
+					SIM7000TCPClientConnectedCallback(atoi(ptr--));
 			}
-			ptr = strstr((char*)raw.data,"+IPD");
+
+			ptr = strstr((char*)raw.data,",CLOSED");
 			if(ptr != nullptr) {
-				int length = atoi(ptr + 5);
-				while(*ptr != ',') {
+				if(SIM7000TCPClientDisconnectedCallback != nullptr)
+					SIM7000TCPClientDisconnectedCallback(atoi(ptr--));
+			}
+
+			ptr = strstr((char*)raw.data,"+RECEIVE");
+			if(ptr != nullptr) {
+				int length = atoi(ptr + 11);
+				int client = atoi(ptr + 9);
+				while(*ptr != ':') {
 					ptr++;
 				}
 				ptr++;
 				if(SIM7000TCP_UDP_DataReceivedEventCallback != nullptr)
-					SIM7000TCP_UDP_DataReceivedEventCallback(ptr,length);
+					SIM7000TCP_UDP_DataReceivedEventCallback(ptr,length,client);
 			}
 			ProcessDone();
 			state = SIM7000CommandState::IDLE;
 		break;
 
 		default:
-			if( strstr((char*)raw.data,"OK") != nullptr) {
+			if(strstr((char*)raw.data,"OK") != nullptr) {
+				if(SIM7000IsStatusOKCallback != nullptr)
+					SIM7000IsStatusOKCallback(true);
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+			else if(strstr((char*)raw.data,"ERROR") != nullptr){
+				if(SIM7000IsStatusOKCallback != nullptr)
+					SIM7000IsStatusOKCallback(false);
 				ProcessDone();
 				state = SIM7000CommandState::IDLE;
 			}
 		break;
 	}
-}
-
-void Cellular::SIM7000::HandleTCPServer() {
-
 }
 
 void Cellular::SIM7000::HandleUDP() {
@@ -386,11 +542,19 @@ void Cellular::SIM7000::HandleHTTP() {
 		break;
 
 		default:
-			if( strstr((char*)raw.data,"OK") != nullptr) {
+			if(strstr((char*)raw.data,"OK") != nullptr) {
+				if(SIM7000IsStatusOKCallback != nullptr)
+					SIM7000IsStatusOKCallback(true);
 				ProcessDone();
 				state = SIM7000CommandState::IDLE;
 			}
-			break;
+			else if(strstr((char*)raw.data,"ERROR") != nullptr){
+				if(SIM7000IsStatusOKCallback != nullptr)
+					SIM7000IsStatusOKCallback(false);
+				ProcessDone();
+				state = SIM7000CommandState::IDLE;
+			}
+		break;
 	}
 }
 
@@ -418,24 +582,24 @@ bool Cellular::SIM7000::send(const Container & data) {
 	toSend = &DataManager<SIM7000Data>::convertFromContainer(data);
 	busy = true;
 	char send[30] = "AT+CIPSEND=";
-	char sizestr[10] = "";
-	int size = toSend->getLength();
+	char size[10] = "";
 	char client[10] ="";
-	sprintf(client,"%d",currentClient);
-	sprintf(sizestr,"%d",size);
+
+	sprintf(client,"%d",toSend->getClient());
+	sprintf(size,"%d",toSend->getLength());
 
 	switch(role) {
 		case TCP:
 			state = SIM7000CommandState::TCP_UDP_SEND;
 			if(protocol == TCP_CLIENT) {
-				strcat(send,sizestr);
+				strcat(send,size);
 				strcat(send,"\r\n");
 				serial.send((uint8_t*)send,strlen(send));
 			}
 			else {
 				strcat(send,client);
 				strcat(send,",");
-				strcat(send,sizestr);
+				strcat(send,size);
 				strcat(send,"\r\n");
 				serial.send((uint8_t*)send,strlen(send));
 			}
@@ -443,7 +607,7 @@ bool Cellular::SIM7000::send(const Container & data) {
 
 		case UDP:
 			state = SIM7000CommandState::TCP_UDP_SEND;
-			strcat(send,sizestr);
+			strcat(send,size);
 			strcat(send,"\r\n");
 			serial.send((uint8_t*)send,strlen(send));
 		break;
@@ -505,7 +669,7 @@ bool Cellular::SIM7000::sendCmd(int cmd) {
 		break;
 
 		case SIM7000_TCP_CONNECT_TO_SERVER:
-			state = SIM7000CommandState::TCP_CLOSE_SERVER;
+			state = SIM7000CommandState::TCP_CONNECT_SERVER;
 			TCPConnectServer();
 		break;
 
@@ -667,7 +831,7 @@ void Cellular::SIM7000::ClearBuff() {
 }
 
 void Cellular::SIM7000::GetIP() {
-	if(protocol == HTTP) {
+	if(role == HTTP) {
 		//AT+SAPBR=2,1
 		serial.send((uint8_t*)"AT+SAPBR=2,1",12);
 	}
@@ -727,6 +891,7 @@ void Cellular::SIM7000::TCPOpenServer() {
 	char buffer[50] = "AT+CIPSERVER=1,";
 	char port[10] = "";
 	sprintf(port,"%d\r\n",params->getPort());
+	strcat(buffer,port);
 	serial.send((uint8_t*)buffer,strlen(buffer));
 }
 
@@ -739,7 +904,7 @@ void Cellular::SIM7000::TCPDisConnectFromClient() {
 	//AT+CIPCLOSE=client
 	char buffer[50] ="AT+CIPCLOSE=";
 	char client[5];
-	sprintf(client,"%d\r\n",currentClient);
+	sprintf(client,"%d\r\n",toSend->getClient());
 	strcat(buffer,client);
 	serial.send((uint8_t*)buffer,strlen(buffer));
 }
