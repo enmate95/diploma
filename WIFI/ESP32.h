@@ -23,14 +23,11 @@ typedef enum {
 typedef enum {
 	TCP,
 	UDP,
-	BLE,
 }ESPProtocol_t;
 
 typedef enum {
-	WIFI_CLIENT,
-	WIFI_SERVER,
-	BLE_PERIPHERAL,
-	BLE_CENTRAL,
+	TCP_CLIENT,
+	TCP_SERVER,
 }ESPRole_t;
 
 
@@ -98,7 +95,7 @@ typedef std::function<void(char*)> ESPGetIPCb_t;
 typedef std::function<void()> ESPWifiConnectionCompletedCb_t;
 typedef std::function<void()>ESPWifiDisconnectionCompletedCb_t;
 
-typedef std::function<void(char*,int)> ESPDataReceivedEventCb_t;
+typedef std::function<void(char*,int,int)> ESPDataReceivedEventCb_t;
 
 typedef std::function<void()> ESPConnectedToTCPServerCb_t;
 typedef std::function<void()> ESPDisconnectedFromTCPServerCb_t;
@@ -108,9 +105,29 @@ typedef std::function<void()> ESPTCPServerClosedCb_t;
 typedef std::function<void(int)> ESPTCPClientConnectedCb_t;
 typedef std::function<void(int)> ESPTCPClientDisonnectedCb_t;
 
-typedef std::function<void()> ESPTestCb_t;
 typedef std::function<void(bool)> ESPWifiisConnectedCb_t;
+typedef std::function<void(bool)> ESPIsStatusOKCb_t;
 
+enum class ESPCommandState {
+	IDLE,
+	SET_MODE,
+	ENABLE_MULTIPLE_CONN,
+	DISABLE_MULTIPLE_CONN,
+	DISABLE_ECHO,
+	GET_IP,
+	GET_WIFI_STATUS,
+	SEND,
+
+	CONNECT_WIFI,
+	DISCONNECT_WIFI,
+
+	CONNECT_TO_TCP_SERVER,
+	DISCONNECT_FROM_TCP_SERVER,
+
+	OPEN_TCP_SERVER,
+	CLOSE_TCP_SERVER,
+	DISCONNECT_FROM_TCP_CLIENT,
+};
 
 typedef enum {
 	ESP_DEVICE_PARAMS,
@@ -119,6 +136,7 @@ typedef enum {
 
 typedef enum {
 	ESP_GET_IP_CB,
+	ESP_STATUS_OK_CB,
 
 	ESP_WIFI_CONNECTION_COMPLETE_CB,
 	ESP_WIFI_DISCONNECTION_COMPLETE_CB,
@@ -133,13 +151,12 @@ typedef enum {
 	ESP_TCP_CLIENT_CONNECTED_CB,
 	ESP_TCP_CLIENT_DISCONNECTED_CB,
 
-	ESP_TEST_CB,
 	ESP_WIFI_IS_CONNECTED_CB,
 }ESPCb_t;
 
 typedef enum {
-	ESP_TEST,
 	ESP_SET_MODE,
+	ESP_DISABLE_ECHO,
 
 	ESP_CONNECT_WIFI,
 	ESP_DISCONNECT_WIFI,
@@ -174,10 +191,8 @@ public:
 	void callHandler();
 	void start();
 	void stop();
-	bool isStatusOk();
 
 private:
-	void Test();
 	void SetMode();
 	void ConnectToTCPServer();
 	void ConnectWifi();
@@ -192,13 +207,14 @@ private:
 	void EnableMultipleConnections();
 	void GetWifiConnectionStatus();
 	void ClearBuff();
+	void DisableEcho();
 
-	void HandleStatusOK();
-	void HandleStatusERROR();
-	void HandleClientDisconnection(char *ptr);
-	void HandleClientConnection(char *ptr);
-	void HandleServerDisconnection();
-	void HandleDataReception(char* ptr);
+	void HandleTCPClient();
+	void HandleTCPServer();
+	void HandleUDP();
+
+	bool IsNumber(char c);
+	void ProcessDone();
 
 	ESPGetIPCb_t ESPGetIPCallback;
 
@@ -215,18 +231,18 @@ private:
 	ESPTCPClientConnectedCb_t ESPTCPClientConnectedCallback;
 	ESPTCPClientDisonnectedCb_t ESPTCPClientDisonnectedCallback;
 
-	ESPTestCb_t ESPTestCallback;
+	ESPIsStatusOKCb_t ESPIsStatusOKCallback;
 	ESPWifiisConnectedCb_t ESPWifiisConnectedCallback;
 
 	UartDMA &serial;
 	UartData_t raw;
 	ESPParams* params;
 	ESPMode_t mode = ApAndStation;
-	ESPRole_t role = WIFI_CLIENT;
+	ESPRole_t role = TCP_CLIENT;
 	ESPProtocol_t protocol = TCP;
 	ESPData* toSend;
+	ESPCommandState state = ESPCommandState::IDLE;
 	bool flag = false;
-	bool statusOk = false;
 };
 
 }

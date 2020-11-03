@@ -215,7 +215,18 @@ void Cellular::SIM7000::HandleTCPClient() {
 		break;
 
 		case SIM7000CommandState::TCP_UDP_SEND:
-			if(strstr((char*)raw.data,"SEND OK") != nullptr){
+			ptr = strstr((char*)raw.data,"SEND OK");
+			if(ptr != nullptr){
+				ptr = strstr((char*)raw.data,"+IPD");
+				if(ptr != nullptr) {
+					int length = atoi(ptr + 5);
+					while(*ptr != ':') {
+						ptr++;
+					}
+					ptr++;
+					if(SIM7000TCP_UDP_DataReceivedEventCallback != nullptr)
+						SIM7000TCP_UDP_DataReceivedEventCallback(ptr,length,0);
+				}
 				ProcessDone();
 				state = SIM7000CommandState::IDLE;
 				sent = false;
@@ -253,7 +264,7 @@ void Cellular::SIM7000::HandleTCPClient() {
 			ptr = strstr((char*)raw.data,"+IPD");
 			if(ptr != nullptr) {
 				int length = atoi(ptr + 5);
-				while(*ptr != ',') {
+				while(*ptr != ':') {
 					ptr++;
 				}
 				ptr++;
@@ -283,6 +294,7 @@ void Cellular::SIM7000::HandleTCPClient() {
 
 void Cellular::SIM7000::HandleTCPServer() {
 	char* ptr;
+	bool sent = false;
 	switch(state) {
 		case SIM7000CommandState::SET_PIN:
 			if(strstr((char*)raw.data,"READY") != nullptr) {
@@ -355,9 +367,28 @@ void Cellular::SIM7000::HandleTCPServer() {
 		break;
 
 		case SIM7000CommandState::TCP_UDP_SEND:
-			if(strstr((char*)raw.data,">") != nullptr) {
+			ptr = strstr((char*)raw.data,"SEND OK");
+			if(ptr != nullptr){
+				ptr = strstr((char*)raw.data,"+RECEIVE");
+				if(ptr != nullptr) {
+					int length = atoi(ptr + 11);
+					int client = atoi(ptr + 9);
+					while(*ptr != ':') {
+						ptr++;
+					}
+					ptr++;
+					if(SIM7000TCP_UDP_DataReceivedEventCallback != nullptr)
+						SIM7000TCP_UDP_DataReceivedEventCallback(ptr,length,client);
+					}
+				else {
+					ProcessDone();
+					state = SIM7000CommandState::IDLE;
+					sent = false;
+				}
+			}
+			else if((strstr((char*)raw.data,">") != nullptr) && (!sent)) {
 				serial.send((uint8_t*)toSend->getData(),toSend->getLength());
-				state = SIM7000CommandState::IDLE;
+				sent = true;
 			}
 		break;
 
@@ -425,7 +456,7 @@ void Cellular::SIM7000::HandleTCPServer() {
 }
 
 void Cellular::SIM7000::HandleUDP() {
-
+//TODO:
 }
 
 void Cellular::SIM7000::HandleHTTP() {
@@ -557,17 +588,6 @@ void Cellular::SIM7000::HandleHTTP() {
 		break;
 	}
 }
-
-
-//void Cellular::SIM7000::HandleClientDisconnection(char* ptr) {
-//	if(SIM7000TCPClientDisconnectedCallback != nullptr)
-//		SIM7000TCPClientDisconnectedCallback(atoi(ptr--));
-//}
-
-//void Cellular::SIM7000::HandleClientConnection(char* ptr) {
-//	if(SIM7000TCPClientConnectedCallback != nullptr)
-//		SIM7000TCPClientConnectedCallback(atoi(ptr--));
-//}
 
 bool Cellular::SIM7000::IsNumber(char c) {
 	const char lookup[] = "0123456789";

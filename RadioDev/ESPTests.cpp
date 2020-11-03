@@ -25,7 +25,7 @@ void WifiConnectionCompletedCb();
 void WifiDisconnectionCompletedCb();
 void ConnectedToServer();
 void DisConnectedFromServer();
-void DataReceivedCb(char* data, int size);
+void DataReceivedCb(char* data, int size, int client);
 void WifiIsConnectedCb(bool status);
 
 WifiDevice::ESPWifiConnectionCompletedCb_t ConnectionComplete = WifiConnectionCompletedCb;
@@ -66,7 +66,7 @@ void DisConnectedFromServer() {
 	TCPconnected = false;
 }
 
-void DataReceivedCb(char* data, int size) {
+void DataReceivedCb(char* data, int size, int client) {
 	received = true;
 	if(size < sizeof(ptr))
 		memcpy(ptr,data,size);
@@ -108,30 +108,38 @@ void StartTask(void const * argument) {
 
 	device->start();
 
-	while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
-		device->sendCmd(WifiDevice::ESP_GET_WIFI_STATUS);
-		osDelay(100);
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_DISABLE_ECHO);
+		osDelay(200);
 		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_GET_WIFI_STATUS);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
 	}
 
 	if(connected) {
-		while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
+		for(;;) {
 			device->sendCmd(WifiDevice::ESP_DISCONNECT_WIFI);
-			osDelay(100);
+			osDelay(200);
 			device->process();
+			if(!device->isBusy())
+				break;
 		}
 	}
 
-//	while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
-//		device->sendCmd(WifiDevice::ESP_CLOSE_TCP_SERVER);
-//		osDelay(100);
-//		device->process();
-//	}
-//
-	while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
+	for(;;) {
 		device->sendCmd(WifiDevice::ESP_DISABLE_MULTIPLE_CONN);
-		osDelay(100);
+		osDelay(200);
 		device->process();
+		if(!device->isBusy())
+			break;
 	}
 
 	for(;;) {
@@ -180,8 +188,8 @@ void StartTask(void const * argument) {
 				break;
 			}
 		}
+		osDelay(200);
 		device->process();
-		osDelay(100);
 	}
 }
 
