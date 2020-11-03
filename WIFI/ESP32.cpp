@@ -23,6 +23,11 @@ void WifiDevice::ESP32::setParameter(int param, const Container & value) {
 			role =DataManager<WifiDevice::ESPRole_t>::convertFromContainer(value);
 		}
 		break;
+
+		case ESP_PROTOCOL: {
+			protocol =DataManager<WifiDevice::ESPProtocol_t>::convertFromContainer(value);
+		}
+		break;
 	}
 }
 
@@ -35,6 +40,11 @@ Container WifiDevice::ESP32::getParameter(int param) {
 
 		case ESP_ROLE: {
 			return DataManager<WifiDevice::ESPRole_t>::convertFromData(role);
+		}
+		break;
+
+		case ESP_PROTOCOL: {
+			return DataManager<WifiDevice::ESPProtocol_t>::convertFromData(protocol);
 		}
 		break;
 
@@ -163,7 +173,7 @@ void WifiDevice::ESP32::HandleTCPServer() {
 		ptr = strstr((char*)raw.data,",CLOSED");
 		if(ptr != nullptr) {
 			if(ESPTCPClientDisonnectedCallback != nullptr)
-				ESPTCPClientDisonnectedCallback(ptr--);
+				ESPTCPClientDisonnectedCallback(atoi(ptr--));
 			ProcessDone();
 			state = ESPCommandState::IDLE;
 		}
@@ -171,7 +181,7 @@ void WifiDevice::ESP32::HandleTCPServer() {
 		ptr = strstr((char*)raw.data,",CONNECT");
 		if(ptr != nullptr) {
 			if(ESPTCPClientConnectedCallback != nullptr)
-				ESPTCPClientConnectedCallback(ptr--);
+				ESPTCPClientConnectedCallback(atoi(ptr--));
 			ProcessDone();
 			state = ESPCommandState::IDLE;
 		}
@@ -237,6 +247,7 @@ void WifiDevice::ESP32::HandleTCPServer() {
 				ptr++;
 				length++;
 			}
+			ip[length] = '\0';
 			memcpy(ip,start,length);
 			params->setIP(ip);
 			if(ESPGetIPCallback != nullptr)
@@ -284,7 +295,118 @@ void WifiDevice::ESP32::HandleTCPServer() {
 }
 
 void WifiDevice::ESP32::HandleUDP() {
+	bool sent = false;
+	char* ptr;
+	switch(state) {
+	case ESPCommandState::IDLE:
+		ptr = strstr((char*)raw.data,"+IPD");
+		if(ptr != nullptr) {
+			int length = atoi(ptr + 7);
+			int client = atoi(ptr + 5);
+			while(*ptr != ':') {
+				ptr++;
+			}
+			ptr++;
+			if(ESPDataReceivedEventCallback != nullptr)
+				ESPDataReceivedEventCallback(ptr,length,client);
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
 
+	case ESPCommandState::SEND:
+		if(strstr((char*)raw.data,"SEND OK") != nullptr){
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+			sent = false;
+		}
+		else if((strstr((char*)raw.data,">") != nullptr) && (!sent)) {
+			serial.send((uint8_t*)toSend->getData(),toSend->getLength());
+			sent = true;
+		}
+	break;
+
+	case ESPCommandState::CONNECT_WIFI:
+		if(strstr((char*)raw.data,"OK") != nullptr) {
+			if(ESPWifiConnectionCompletedCallback != nullptr)
+				ESPWifiConnectionCompletedCallback();
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
+
+	case ESPCommandState::DISCONNECT_WIFI:
+		if(strstr((char*)raw.data,"WIFI DISCONNECT") != nullptr) {
+			if(ESPWifiDisconnectionCompletedCallback != nullptr)
+				ESPWifiDisconnectionCompletedCallback();
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
+
+	case ESPCommandState::GET_IP:
+		ptr = strstr((char*)raw.data,"STAIP");
+		if(ptr != nullptr) {
+			ptr += 7;
+			char* start = ptr;
+			char ip[20];
+			int length = 0;
+			while(IsNumber(*ptr) || (*ptr == '.')) {
+				ptr++;
+				length++;
+			}
+			ip[length] = '\0';
+			memcpy(ip,start,length);
+			params->setIP(ip);
+			if(ESPGetIPCallback != nullptr)
+				ESPGetIPCallback(params->getIP());
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
+
+
+	case ESPCommandState::GET_WIFI_STATUS:
+		ptr = strstr((char*)raw.data,"STATUS:");
+		if(ptr != nullptr) {
+			ptr += 7;
+			int status = atoi(ptr);
+
+			if(status < 5) {
+				if(ESPWifiisConnectedCallback != nullptr)
+					ESPWifiisConnectedCallback(true);
+			}
+			else if(status == 5){
+				if(ESPWifiisConnectedCallback != nullptr)
+					ESPWifiisConnectedCallback(false);
+			}
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
+
+	case ESPCommandState::START_UDP:
+		if(strstr((char*)raw.data,"OK") != nullptr) {
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
+
+	default:
+		if(strstr((char*)raw.data,"OK") != nullptr) {
+			if(ESPIsStatusOKCallback != nullptr)
+				ESPIsStatusOKCallback(true);
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+		else if(strstr((char*)raw.data,"ERROR") != nullptr){
+			if(ESPIsStatusOKCallback != nullptr)
+				ESPIsStatusOKCallback(false);
+			ProcessDone();
+			state = ESPCommandState::IDLE;
+		}
+	break;
+	}
 }
 
 void WifiDevice::ESP32::HandleTCPClient() {
@@ -465,6 +587,18 @@ void WifiDevice::ESP32::DisableEcho() {
 	serial.send((uint8_t*)"ATE0\r\n", 6);
 }
 
+void WifiDevice::ESP32::StartUDP() {
+	//AT+CIPSTART="UDP","IP",port,own port,fix IP
+	char toSend[100] = "AT+CIPSTART=0,\"UDP\",\"";
+	char num[30] = "";
+
+	strcat(toSend,params->getServerIP());
+	strcat(toSend,"\",");
+	sprintf(num,"%d,1112,0\r\n",params->getPort());
+	strcat(toSend,num);
+	serial.send((uint8_t*)toSend,strlen(toSend));
+}
+
 void WifiDevice::ESP32::ConnectToTCPServer() {
 	//AT+CIPSTART="TCP","IP",port
 	char* ServerIP = params->getServerIP();
@@ -568,7 +702,11 @@ bool WifiDevice::ESP32::send(const Container & data) {
 		}
 	}
 	else {
-
+		strcat(send,"0");
+		strcat(send,",");
+		strcat(send,size);
+		strcat(send,"\r\n");
+		serial.send((uint8_t*)send,strlen(send));
 	}
 
 	return true;
@@ -580,6 +718,11 @@ bool WifiDevice::ESP32::sendCmd(int cmd) {
 		case ESP_DISABLE_ECHO:
 			state = ESPCommandState::DISABLE_ECHO;
 			DisableEcho();
+		break;
+
+		case ESP_START_UDP:
+			state = ESPCommandState::START_UDP;
+			StartUDP();
 		break;
 
 		case ESP_SET_MODE:

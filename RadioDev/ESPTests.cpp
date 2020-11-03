@@ -196,9 +196,161 @@ void StartTask(void const * argument) {
 }
 #else
 
+#if WIFI_UDP_MODE
 void WifiConnectionCompletedCb();
 void WifiDisconnectionCompletedCb();
-void DataReceivedCb(char* data, int size);
+void DataReceivedCb(char* data, int size, int client);
+void WifiIsConnectedCb(bool status);
+
+WifiDevice::ESPWifiConnectionCompletedCb_t ConnectionComplete = WifiConnectionCompletedCb;
+WifiDevice::ESPWifiDisconnectionCompletedCb_t DisconnectionComplete = WifiDisconnectionCompletedCb;
+WifiDevice::ESPDataReceivedEventCb_t DataReceived = DataReceivedCb;
+WifiDevice::ESPWifiisConnectedCb_t isConnected = WifiIsConnectedCb;
+
+char ptr[50] = "";
+int length = 0;
+bool connected;
+bool received = false;
+
+void WifiIsConnectedCb(bool status) {
+	connected = status;
+}
+
+void WifiConnectionCompletedCb() {
+	HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,GPIO_PIN_SET);
+	connected = true;
+}
+
+void WifiDisconnectionCompletedCb() {
+	HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,GPIO_PIN_RESET);
+	connected = false;
+}
+
+void DataReceivedCb(char* data, int size, int client) {
+	received = true;
+	if(size < sizeof(ptr))
+		memcpy(ptr,data,size);
+	length = size;
+}
+
+extern "C" {
+
+void ESPUartITHandler() {
+	device->callHandler();
+}
+
+
+enum class AppState {
+	Run,
+	Done,
+};
+
+AppState state = AppState::Run;
+
+void StartTask(void const * argument) {
+	int cntr = 0;
+	device = &esp;
+	WifiDevice::ESPProtocol_t protocol = WifiDevice::UDP;
+
+	parameters.setSSID("UPC5016370");
+	parameters.setPasskey("vn8rtfxUtmFr");
+	parameters.setPort(8080);
+	parameters.setServerIP("192.168.0.150");
+
+	device->setParameter(WifiDevice::ESP_PROTOCOL, DataManager<WifiDevice::ESPProtocol_t>::convertFromData(protocol));
+
+	device->setParameter(WifiDevice::ESP_DEVICE_PARAMS, DataManager<WifiDevice::ESPParams>::convertFromData(parameters));
+	device->setCallback(WifiDevice::ESP_WIFI_CONNECTION_COMPLETE_CB,DataManager<WifiDevice::ESPWifiConnectionCompletedCb_t>::convertFromData(ConnectionComplete));
+	device->setCallback(WifiDevice::ESP_WIFI_DISCONNECTION_COMPLETE_CB,DataManager<WifiDevice::ESPWifiDisconnectionCompletedCb_t>::convertFromData(DisconnectionComplete));
+	device->setCallback(WifiDevice::ESP_DATA_RECEIVED_CB,DataManager<WifiDevice::ESPDataReceivedEventCb_t>::convertFromData(DataReceived));
+	device->setCallback(WifiDevice::ESP_WIFI_IS_CONNECTED_CB,DataManager<WifiDevice::ESPWifiisConnectedCb_t>::convertFromData(isConnected));
+
+	device->start();
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_DISABLE_ECHO);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_GET_WIFI_STATUS);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	if(connected) {
+		for(;;) {
+			device->sendCmd(WifiDevice::ESP_DISCONNECT_WIFI);
+			osDelay(200);
+			device->process();
+			if(!device->isBusy())
+				break;
+		}
+	}
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_ENABLE_MULTIPLE_CONN);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_CONNECT_WIFI);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_START_UDP);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	for(;;) {
+		if(!device->isBusy()) {
+			switch(state) {
+				case AppState::Run:
+					if(received) {
+						cntr++;
+						toSend.setData(ptr);
+						toSend.setLength(length);
+						device->send(DataManager<WifiDevice::ESPData>::convertFromData(toSend));
+						osDelay(10);
+						received = false;
+					}
+
+					if(cntr >= 4) {
+						state=AppState::Done;
+					}
+				break;
+
+				case AppState::Done:
+					HAL_GPIO_TogglePin(LED2_GPIO_Port,LED2_Pin);
+				break;
+			}
+		}
+		osDelay(200);
+		device->process();
+	}
+}
+}
+
+#else
+
+void WifiConnectionCompletedCb();
+void WifiDisconnectionCompletedCb();
+void DataReceivedCb(char* data, int size,int client);
 void ServerClosedCb();
 void WifiIsConnectedCb(bool status);
 void ClientConnectedCb(int num);
@@ -252,7 +404,7 @@ void ServerClosedCb() {
 	clientConnected = false;
 }
 
-void DataReceivedCb(char* data, int size) {
+void DataReceivedCb(char* data, int size,int client) {
 	received = true;
 	ptr = data;
 	length = size;
@@ -269,7 +421,7 @@ void StartTask(void const * argument) {
 	int cntr = 0;
 	device = &esp;
 
-	WifiDevice::ESPRole_t role = WifiDevice::WIFI_SERVER;
+	WifiDevice::ESPRole_t role = WifiDevice::TCP_SERVER;
 
 	parameters.setSSID("UPC5016370");
 	parameters.setPasskey("vn8rtfxUtmFr");
@@ -289,24 +441,38 @@ void StartTask(void const * argument) {
 
 	device->start();
 
-	while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
-		device->sendCmd(WifiDevice::ESP_GET_WIFI_STATUS);
-		osDelay(100);
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_DISABLE_ECHO);
+		osDelay(200);
 		device->process();
+		if(!device->isBusy())
+			break;
+	}
+
+	for(;;) {
+		device->sendCmd(WifiDevice::ESP_GET_WIFI_STATUS);
+		osDelay(200);
+		device->process();
+		if(!device->isBusy())
+			break;
 	}
 
 	if(connected) {
-		while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
+		for(;;) {
 			device->sendCmd(WifiDevice::ESP_DISCONNECT_WIFI);
-			osDelay(100);
+			osDelay(200);
 			device->process();
+			if(!device->isBusy())
+				break;
 		}
 	}
 
-	while(!static_cast<WifiDevice::ESP32*>(device)->isStatusOk()) {
+	for(;;) {
 		device->sendCmd(WifiDevice::ESP_ENABLE_MULTIPLE_CONN);
-		osDelay(100);
+		osDelay(200);
 		device->process();
+		if(!device->isBusy())
+			break;
 	}
 
 
@@ -362,6 +528,7 @@ void StartTask(void const * argument) {
 	}
 }
 }
+#endif
 #endif
 
 #endif

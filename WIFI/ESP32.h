@@ -111,6 +111,7 @@ typedef std::function<void(bool)> ESPIsStatusOKCb_t;
 enum class ESPCommandState {
 	IDLE,
 	SET_MODE,
+	START_UDP,
 	ENABLE_MULTIPLE_CONN,
 	DISABLE_MULTIPLE_CONN,
 	DISABLE_ECHO,
@@ -132,6 +133,7 @@ enum class ESPCommandState {
 typedef enum {
 	ESP_DEVICE_PARAMS,
 	ESP_ROLE,
+	ESP_PROTOCOL,
 }ESPParam_t;
 
 typedef enum {
@@ -173,6 +175,8 @@ typedef enum {
 	ESP_DISABLE_MULTIPLE_CONN,
 	ESP_ENABLE_MULTIPLE_CONN,
 
+	ESP_START_UDP,
+
 	ESP_GET_WIFI_STATUS,
 }ESPCmd_t;
 
@@ -201,6 +205,7 @@ private:
 	void DisConnectFromTCPClient();
 	void OpenTCPServer();
 	void CloseTCPServer();
+	void StartUDP();
 
 	void GetIP();
 	void DisableMultipleConnections();
