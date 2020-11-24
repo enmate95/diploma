@@ -18,6 +18,10 @@ void Cellular::SIM7000::setParameter(int param, const Container & value) {
 		case SIM7000_PROTOCOL:
 			protocol = DataManager<Cellular::SIM7000Protocol_t>::convertFromContainer(value);
 		break;
+
+		case SIM7000_SIDE_MODE:
+			sidemode = DataManager<Cellular::SIM7000SideMode_t>::convertFromContainer(value);
+		break;
 	}
 }
 
@@ -33,6 +37,10 @@ Container Cellular::SIM7000::getParameter(int param) {
 
 		case SIM7000_PROTOCOL:
 			return DataManager<Cellular::SIM7000Protocol_t>::convertFromData(protocol);
+		break;
+
+		case SIM7000_SIDE_MODE:
+			return DataManager<Cellular::SIM7000SideMode_t>::convertFromData(sidemode);
 		break;
 	}
 }
@@ -784,6 +792,18 @@ void Cellular::SIM7000::SetRxDataFormat() {
 
 void Cellular::SIM7000::DisableEcho() {
 	serial.send((uint8_t*)"ATE0\r\n",6);
+}
+
+void Cellular::SIM7000::SetSideMode() {
+	if(sidemode == NB_IOT) {
+		serial.send((uint8_t*)"AT+CMNB=1\r\n",11);
+	}
+	else if(sidemode == CAT_M){
+		serial.send((uint8_t*)"AT+CMNB=2\r\n",11);
+	}
+	else {
+		serial.send((uint8_t*)"AT+CMNB=3\r\n",11);
+	}
 }
 
 void Cellular::SIM7000::SetPIN() {

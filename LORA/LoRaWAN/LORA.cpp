@@ -21,6 +21,10 @@ void LoRa::LoRaDevice::setParameter(int param, const Container & data) {
 		case LORA_DEVICE_PARAMS: {
 			DeviceParams = &DataManager<LoRaDeviceParams>::convertFromContainer(data);
 		}
+
+		case LORA_JOIN_PARAMS: {
+			JoinParams = &DataManager<LoRaJoinParams>::convertFromContainer(data);
+		}
 	default:
 		break;
 	}
@@ -38,8 +42,8 @@ Container LoRa::LoRaDevice::getParameter(int param) {
 		}
 		break;
 
-		case LORA_UPLINK_STATUS: {
-			return DataManager<UplinkMessageStatus_t>::convertFromData(UplinkStatus);
+		case LORA_JOIN_PARAMS: {
+			return DataManager<LoRaJoinParams>::convertFromData(*JoinParams);
 		}
 		break;
 
@@ -54,16 +58,6 @@ void LoRa::LoRaDevice::setCallback(int type, const Container & value) {
 	switch(type) {
 		case LORA_GET_RADIO_CONFIG_CB: {
 			GetRadioConfigCallback = DataManager<LORAGetRadioConfigCb_t>::convertFromContainer(value);
-		}
-		break;
-
-		case LORA_SET_RADIO_CONFIG_CB: {
-			SetRadioConfigCallback = DataManager<LORASetRadioConfigCb_t> ::convertFromContainer(value);
-		}
-		break;
-
-		case LORA_SET_JOIN_PARAMS_CB: {
-			SetJoinParamsCallback = DataManager<LORASetJoinParamsCb_t>::convertFromContainer(value);
 		}
 		break;
 
@@ -92,8 +86,8 @@ void LoRa::LoRaDevice::setCallback(int type, const Container & value) {
 		}
 		break;
 
-		case LORA_PING_CB: {
-			PingCallback = DataManager<LORAPingCb_t>::convertFromContainer(value);
+		case LORA_STATUS_OK_CB: {
+			StatusOKCallback = DataManager<LORAStatusOKCb_t>::convertFromContainer(value);
 		}
 		break;
 
@@ -113,13 +107,14 @@ void LoRa::LoRaDevice::callHandler() {
 }
 
 bool LoRa::LoRaDevice::send(const Container & data) {
+	busy = true;
 	HCIMessage message;
 	message = DataManager<HCIMessage>::convertFromContainer(data);
-	busy = true;
 	return hci.SendMessage(*message.get());
 }
 
 bool LoRa::LoRaDevice::sendCmd(int cmd) {
+	busy = true;
 	switch(cmd) {
 	case CONNECT:
 		if(Connect()) {
@@ -204,7 +199,6 @@ void LoRa::LoRaDevice::process() {
 
 
 bool LoRa::LoRaDevice::LoRaDevice::Connect() {
-	busy = true;
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_JOIN_NETWORK_REQ;
 	TxMessage.Length = 0;
@@ -212,7 +206,6 @@ bool LoRa::LoRaDevice::LoRaDevice::Connect() {
 }
 
 bool LoRa::LoRaDevice::Disconnect() {
-	busy = true;
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_DEACTIVATE_DEVICE_REQ;
 	TxMessage.Length = 0;
@@ -220,7 +213,6 @@ bool LoRa::LoRaDevice::Disconnect() {
 }
 
 bool LoRa::LoRaDevice::GetNtwkStatus() {
-	busy = true;
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_GET_NWK_STATUS_REQ;
 	TxMessage.Length = 0;
@@ -228,7 +220,6 @@ bool LoRa::LoRaDevice::GetNtwkStatus() {
 }
 
 bool LoRa::LoRaDevice::SwReset() {
-	busy = true;
 	TxMessage.SapID = DEVMGMT_SAP_ID;
 	TxMessage.MsgID = DEVMGMT_MSG_RESET_REQ;
 	TxMessage.Length = 0;
@@ -250,34 +241,39 @@ void LoRa::LoRaDevice::stop() {
 }
 
 void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
+	busy = false;
 	switch(RxMessage->MsgID) {
 		case LORAWAN_MSG_JOIN_NETWORK_IND:
 			if(RxMessage->Payload[0] == 0x00 || RxMessage->Payload[0] == 0x01) {	//join success with/without info attached
 				if(ConnectionCompletedCallback != nullptr)
 					ConnectionCompletedCallback();
-				busy = false;
+				char address[4];
+				memcpy(address,&RxMessage->Payload[1],4);
+				DeviceParams->setDeviceAddress(address);
 			}
 		break;
 
 		case LORAWAN_MSG_GET_NWK_STATUS_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
 				if(RxMessage->Payload[1] == 0x02) {									//OTAA active
-					if(ConnectionCompletedCallback != nullptr)
-						ConnectionCompletedCallback();
+					if(GetNtwkStatusCallback != nullptr)
+						GetNtwkStatusCallback(true);
 				}
 				else {
 					if(GetNtwkStatusCallback != nullptr)
-						GetNtwkStatusCallback();
+						GetNtwkStatusCallback(false);
 				}
-				busy = false;
 			}
 		break;
 
 		case LORAWAN_MSG_SET_JOIN_PARAM_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-				if(SetJoinParamsCallback != nullptr)
-					SetJoinParamsCallback();
-				busy = false;
+				if(StatusOKCallback != nullptr)
+					StatusOKCallback(true);
+			}
+			else {
+				if(StatusOKCallback != nullptr)
+					StatusOKCallback(false);
 			}
 		break;
 
@@ -285,7 +281,6 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
 				if(DisconnectionCompletedCallback != nullptr)
 					DisconnectionCompletedCallback();
-				busy = false;
 			}
 		break;
 
@@ -300,15 +295,17 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 				RadioConfig->setHeadarMACCmdCap(RxMessage->Payload[7]);
 				if(GetRadioConfigCallback != nullptr)
 					GetRadioConfigCallback(RadioConfig);
-				busy = false;
 			}
 		break;
 
 		case LORAWAN_MSG_SET_RSTACK_CONFIG_RSP:
 			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
-				if(SetRadioConfigCallback != nullptr)
-					SetRadioConfigCallback();
-				busy = false;
+				if(StatusOKCallback != nullptr)
+					StatusOKCallback(true);
+			}
+			else {
+				if(StatusOKCallback != nullptr)
+					StatusOKCallback(false);
 			}
 		break;
 
@@ -333,13 +330,20 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 				default:
 					UplinkStatus =ERROR;
 				break;
-				busy = false;
 			}
 		break;
 
-		case DEVMGMT_MSG_PING_RSP:
-			if(PingCallback != nullptr)
-				PingCallback();
+		case DEVMGMT_MSG_GET_DEVICE_INFO_RSP:
+			if(RxMessage->Payload[0] == LORAWAN_STATUS_OK) {
+				char address[4];
+				char ID[4];
+				memcpy(address,&RxMessage->Payload[1],4);
+				memcpy(ID,&RxMessage->Payload[5],4);
+				DeviceParams->setDeviceAddress(address);
+				DeviceParams->setDeviceID(ID);
+				if(GetDeviceParamsCallback != nullptr)
+					GetDeviceParamsCallback(DeviceParams);
+			}
 			break;
 
 		case LORAWAN_MSG_RECV_UDATA_IND:
@@ -350,7 +354,6 @@ void LoRa::LoRaDevice::HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage) {
 }
 
 bool LoRa::LoRaDevice::SetRadioConfig() {
-	busy = true;
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_SET_RSTACK_CONFIG_REQ;
 	TxMessage.Length = 7;
@@ -365,7 +368,6 @@ bool LoRa::LoRaDevice::SetRadioConfig() {
 }
 
 bool LoRa::LoRaDevice::GetRadioConfig() {
-	busy = true;
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_GET_RSTACK_CONFIG_REQ;
 	TxMessage.Length = 0;
@@ -373,7 +375,6 @@ bool LoRa::LoRaDevice::GetRadioConfig() {
 }
 
 bool LoRa::LoRaDevice::SetConnectionParams() {
-	busy = true;
 	TxMessage.SapID = LORAWAN_SAP_ID;
 	TxMessage.MsgID = LORAWAN_MSG_SET_JOIN_PARAM_REQ;
 	TxMessage.Length  = 24;

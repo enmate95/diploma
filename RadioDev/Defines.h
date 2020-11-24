@@ -12,7 +12,7 @@
 
 #define ESP_TEST 1
 #define WIFI_CLIENT_MODE 0
-#define WIFI_UDP_MODE 1
+#define WIFI_UDP_MODE 0
 
 #define SIM7000_TEST 0
 #define HTTP_MODE 0

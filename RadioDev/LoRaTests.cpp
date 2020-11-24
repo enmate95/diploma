@@ -23,9 +23,9 @@ enum class AppState {
 AppState state = AppState::Run;
 
 
-void PingHandler();
+void StatusOk(bool status);
 
-void PingHandler() {
+void StatusOk(bool status) {
 	HAL_GPIO_TogglePin(LED1_GPIO_Port,LED1_Pin);
 }
 
@@ -35,10 +35,10 @@ void LoRaUartITHandler() {
 }
 
 void StartTask(void const * argument) {
-	LoRa::LORAPingCb_t cb = PingHandler;
+	LoRa::LORAStatusOKCb_t cb = StatusOk;
 	device = &lora;
 
-	device->setCallback(LoRa::LORA_PING_CB, DataManager<LoRa::LORAPingCb_t>::convertFromData(cb));
+	device->setCallback(LoRa::LORA_STATUS_OK_CB, DataManager<LoRa::LORAStatusOKCb_t>::convertFromData(cb));
 	device->start();
 
 	for(;;) {

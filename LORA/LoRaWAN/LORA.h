@@ -102,7 +102,7 @@
 
 namespace LoRa {
 
- class  HCIMessage{
+class  HCIMessage{
  public:
  	void set(LoRaHCI::TWiMOD_HCI_Message *msg) {
  		this->msg = msg;
@@ -272,11 +272,9 @@ private:
 	char DeviceID[4];
 };
 
-typedef std::function<void()> LORAPingCb_t;
+typedef std::function<void(bool)> LORAStatusOKCb_t;
 typedef std::function<void(LoRaRadioConfig*)> LORAGetRadioConfigCb_t;
-typedef std::function<void()> LORASetRadioConfigCb_t;
-typedef std::function<void()> LORASetJoinParamsCb_t;
-typedef std::function<void()> LORAGetNtwkStatusCb_t;
+typedef std::function<void(bool)> LORAGetNtwkStatusCb_t;
 typedef std::function<void()> LORAConnectionCompletedCb_t;
 typedef std::function<void()> LORADisconnectionCompletedCb_t;
 typedef std::function<void(LoRaDeviceParams*)> LORAGetDeviceParamsCb_t;
@@ -294,19 +292,17 @@ typedef enum {
 typedef enum {
 	LORA_RADIO_CONFIG,
 	LORA_DEVICE_PARAMS,
-	LORA_UPLINK_STATUS,
+	LORA_JOIN_PARAMS,
 }LoRaParam_t;
 
 typedef enum {
 	LORA_GET_RADIO_CONFIG_CB,
-	LORA_SET_RADIO_CONFIG_CB,
-	LORA_SET_JOIN_PARAMS_CB,
 	LORA_GET_NTWK_STATUS_CB,
 	LORA_CONNECTION_COMPLETE_CB,
 	LORA_DISCONNECTION_COMPLETE_CB,
 	LORA_GET_DEVICE_PARAMS_CB,
 	LORA_DOWNLNK_EVENT_CB,
-	LORA_PING_CB,
+	LORA_STATUS_OK_CB,
 }LoRaCb_t;
 
 typedef enum {
@@ -351,14 +347,12 @@ class LoRaDevice :public RadioDevice {
 		void HandleRxMessage(LoRaHCI::TWiMOD_HCI_Message *RxMessage);
 
 		LoRa::LORAGetRadioConfigCb_t GetRadioConfigCallback;
-		LoRa::LORASetRadioConfigCb_t SetRadioConfigCallback;
-		LoRa::LORASetJoinParamsCb_t SetJoinParamsCallback;
 		LoRa::LORAGetNtwkStatusCb_t GetNtwkStatusCallback;
 		LoRa::LORAConnectionCompletedCb_t ConnectionCompletedCallback;
 		LoRa::LORADisconnectionCompletedCb_t DisconnectionCompletedCallback;
 		LoRa::LORAGetDeviceParamsCb_t GetDeviceParamsCallback;
 		LoRa::LORADownlinkEventCb_t DownlinkEventCallback;
-		LORAPingCb_t PingCallback;
+		LORAStatusOKCb_t StatusOKCallback;
 
 		LoRaHCI::TWiMOD_HCI_Message TxMessage;
 		LoRaHCI::HCI &hci;

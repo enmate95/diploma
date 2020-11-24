@@ -15,6 +15,12 @@ typedef enum {
 }SIM7000Mode_t;
 
 typedef enum {
+	NB_IOT,
+	CAT_M,
+	BOTH,
+}SIM7000SideMode_t;
+
+typedef enum {
 	TCP,
 	HTTP,
 	UDP,
@@ -113,6 +119,7 @@ typedef enum {
  	SIM7000_DEVICE_PARAMS,
 	SIM7000_ROLE,
 	SIM7000_PROTOCOL,
+	SIM7000_SIDE_MODE,
  }SIM7000Param_t;
 
  typedef enum {
@@ -137,6 +144,7 @@ typedef enum {
 
  typedef enum {
 	SIM7000_SET_PIN,
+	SIM7000_SET_SIDE_MODE,
 	SIM7000_IS_PIN_NEEDED,
 	SIM7000_SET_MODE,
 	SIM7000_GET_IP,
@@ -167,6 +175,7 @@ typedef enum {
 
  enum class SIM7000CommandState {
 	IDLE,
+	SET_SIDE_MODE,
 	SET_PIN,
 	IS_PIN,
 	GET_GPRS_STATE,
@@ -230,6 +239,7 @@ private:
 	void DisableMultipleConnection();
 	void SetRxDataFormat();
 	void DisableEcho();
+	void SetSideMode();
 
 	void TCPConnectServer();
 	void TCPDisconnectFromServer();
@@ -279,6 +289,7 @@ private:
    UartData_t raw;
    SIM7000Params *params;
    SIM7000Mode_t mode = Automatic;
+   SIM7000SideMode_t sidemode = NB_IOT;
    SIM7000Role_t role = HTTP;
    SIM7000Protocol_t protocol = HTTP_GET;
    SIM7000Data *toSend;
